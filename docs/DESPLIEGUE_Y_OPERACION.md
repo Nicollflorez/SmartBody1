@@ -148,6 +148,7 @@ La app Android apunta al nuevo punto de entrada compilando con
 | Job `docker:backend` (Kaniko → Container Registry) | https://gitlab.com/Nicollflorez/smartbody/-/jobs/17153852764 |
 | Job `k8s:kind` (cluster efimero, `kubectl get pods`, `/api/ping` y `/actuator/health` a traves de Nginx) | https://gitlab.com/Nicollflorez/smartbody/-/jobs/17153852767 |
 | Imagenes publicadas | https://gitlab.com/Nicollflorez/smartbody/container_registry |
+| Pipeline del Merge Request !2: pruebas end-to-end de la API (Etapa 4) sobre el despliegue en kind, 36 aserciones en la pestana *Tests* | https://gitlab.com/Nicollflorez/smartbody/-/pipelines/2944399927/test_report |
 
 ## Pendientes conocidos
 

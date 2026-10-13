@@ -324,7 +324,7 @@ cd android
 ./gradlew testDebugUnitTest
 ```
 
-18 pruebas de validaciones de formularios, del formato de rutinas y medidas y del saludo del chat.
+22 pruebas de validaciones de formularios, del formato de rutinas y medidas, del saludo del chat y del recordatorio de renovacion.
 
 End-to-end de la API (coleccion Postman ejecutada con Newman contra el backend desplegado;
 el pipeline la corre sobre el cluster de prueba y publica el reporte en la pestana *Tests*):
