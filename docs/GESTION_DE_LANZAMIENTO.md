@@ -136,6 +136,7 @@ los binarios que pasaron las pruebas (no recompila): principio de promocion de a
 | GitLab | Pipeline de `main`: build, test, package y publish del SNAPSHOT (cola de ~15 min en runners gratuitos la primera vez; 5-10 min de ejecucion) | https://gitlab.com/Nicollflorez/smartbody/-/pipelines/2943581923 |
 | GitLab | Lanzamiento oficial con aprobacion manual en `publish:release`, tag `v1.0.1` y Release | https://gitlab.com/Nicollflorez/smartbody/-/pipelines/2944130264 |
 | GitLab | Release `v1.0.1` con enlaces al jar y al apk | https://gitlab.com/Nicollflorez/smartbody/-/releases/v1.0.1 |
+| GitLab | Lanzamiento completo con `GITLAB_PUSH_TOKEN`: commits `Release v1.0.3` y `1.0.4-SNAPSHOT`, tag `v1.0.3` sobre el commit del release y Release | https://gitlab.com/Nicollflorez/smartbody/-/pipelines/2944247199 · https://gitlab.com/Nicollflorez/smartbody/-/releases/v1.0.3 |
 | GitLab | Package Registry: `smartbody-backend` y `smartbody-android` (`1.0.1-SNAPSHOT` y `1.0.1`) | https://gitlab.com/Nicollflorez/smartbody/-/packages |
 | GitHub | Pipeline equivalente en Actions (snapshot) | https://github.com/Nicollflorez/SmartBody1/actions/runs/38429738543 |
 | GitHub | Release `v1.0.0` con jar y apk adjuntos, y commits `Release v1.0.0` / `1.0.1-SNAPSHOT` | https://github.com/Nicollflorez/SmartBody1/releases/tag/v1.0.0 |
