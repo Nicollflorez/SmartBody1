@@ -173,7 +173,7 @@ docker:backend:
         --label org.opencontainers.image.version=$VERSION
         --label org.opencontainers.image.revision=$CI_COMMIT_SHA
         $DESTINOS
-    - echo "Imagen publicada: $IMAGEN:$VERSION"
+    - 'echo "Imagen publicada: $IMAGEN:$VERSION"'
 
 # ---------------------------------------------------------------- deploy (Etapas 6 y 7)
 # Valida la configuracion de Nginx y los manifiestos de Kubernetes sin necesitar un cluster.

@@ -18,6 +18,12 @@ kubectl -n $NS create configmap smartbody-sql --from-file="$RAIZ/database" \
     --dry-run=client -o yaml | kubectl apply -f -
 kubectl -n $NS create configmap smartbody-nginx --from-file="$RAIZ/devops/nginx" \
     --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n $NS create configmap smartbody-prometheus --from-file="$RAIZ/devops/prometheus" \
+    --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n $NS create configmap smartbody-grafana-datasources \
+    --from-file="$RAIZ/devops/grafana/provisioning/datasources" --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n $NS create configmap smartbody-grafana-dashboards \
+    --from-file="$RAIZ/devops/grafana/provisioning/dashboards" --dry-run=client -o yaml | kubectl apply -f -
 
 if ! kubectl -n $NS get secret smartbody-jwt-keys >/dev/null 2>&1; then
     TMP=$(mktemp -d)
@@ -42,5 +48,7 @@ fi
 kubectl -n $NS rollout status statefulset/mysql --timeout=300s
 kubectl -n $NS rollout status deployment/backend --timeout=420s
 kubectl -n $NS rollout status deployment/nginx --timeout=120s
+kubectl -n $NS rollout status deployment/prometheus --timeout=120s
+kubectl -n $NS rollout status deployment/grafana --timeout=180s
 kubectl -n $NS get pods,svc
-echo "Smartbody desplegado: http://<nodo>:30080/api/ping"
+echo "Smartbody desplegado: API http://<nodo>:30080/api/ping - Grafana http://<nodo>:30300"

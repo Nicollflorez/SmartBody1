@@ -10,6 +10,7 @@ resources:
   - mysql.yaml
   - backend.yaml
   - nginx.yaml
+  - monitoreo.yaml
 
 labels:
   - pairs:

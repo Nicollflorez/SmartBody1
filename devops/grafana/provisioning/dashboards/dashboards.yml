@@ -1,0 +1,10 @@
+# Carga automaticamente los paneles JSON de esta carpeta.
+apiVersion: 1
+providers:
+  - name: smartbody
+    folder: Smartbody
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

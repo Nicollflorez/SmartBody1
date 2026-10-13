@@ -1,0 +1,40 @@
+# Reglas de alerta de Smartbody (se ven en Prometheus > Alerts y en Grafana).
+groups:
+  - name: smartbody
+    rules:
+      - alert: BackendCaido
+        expr: up{job="smartbody-backend"} == 0
+        for: 1m
+        labels:
+          severidad: critica
+        annotations:
+          resumen: "El backend de Smartbody no responde"
+          descripcion: "Prometheus no consigue raspar /actuator/prometheus desde hace 1 minuto."
+
+      - alert: ErroresHttpElevados
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+            / sum(rate(http_server_requests_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severidad: alta
+        annotations:
+          resumen: "Mas del 5% de las peticiones devuelven error 5xx"
+
+      - alert: LatenciaElevada
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severidad: media
+        annotations:
+          resumen: "El 95% de las peticiones tarda mas de 1 segundo"
+
+      - alert: MemoriaJvmAlta
+        expr: |
+          sum(jvm_memory_used_bytes{area="heap"}) / sum(jvm_memory_max_bytes{area="heap"}) > 0.9
+        for: 5m
+        labels:
+          severidad: media
+        annotations:
+          resumen: "El heap de la JVM supera el 90%"
