@@ -129,6 +129,17 @@ los binarios que pasaron las pruebas (no recompila): principio de promocion de a
 3. Para liberar: *Build > Pipelines > New pipeline* > marcar `publicar_release` > aprobar
    `publish:release` con *Play*.
 
+## Ejecuciones de referencia (13 de octubre de 2026)
+
+| Plataforma | Que demuestra | Enlace |
+|------------|---------------|--------|
+| GitLab | Pipeline de `main`: build, test, package y publish del SNAPSHOT (cola de ~15 min en runners gratuitos la primera vez; 5-10 min de ejecucion) | https://gitlab.com/Nicollflorez/smartbody/-/pipelines/2943581923 |
+| GitLab | Lanzamiento oficial con aprobacion manual en `publish:release`, tag `v1.0.1` y Release | https://gitlab.com/Nicollflorez/smartbody/-/pipelines/2944130264 |
+| GitLab | Release `v1.0.1` con enlaces al jar y al apk | https://gitlab.com/Nicollflorez/smartbody/-/releases/v1.0.1 |
+| GitLab | Package Registry: `smartbody-backend` y `smartbody-android` (`1.0.1-SNAPSHOT` y `1.0.1`) | https://gitlab.com/Nicollflorez/smartbody/-/packages |
+| GitHub | Pipeline equivalente en Actions (snapshot) | https://github.com/Nicollflorez/SmartBody1/actions/runs/38429738543 |
+| GitHub | Release `v1.0.0` con jar y apk adjuntos, y commits `Release v1.0.0` / `1.0.1-SNAPSHOT` | https://github.com/Nicollflorez/SmartBody1/releases/tag/v1.0.0 |
+
 ## Evidencias sugeridas para la entrega
 
 - Captura del pipeline con todas las fases en verde (backend y Android en paralelo).
