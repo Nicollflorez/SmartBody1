@@ -341,9 +341,28 @@ Detalle en [`docs/GESTION_DE_LANZAMIENTO.md`](docs/GESTION_DE_LANZAMIENTO.md).
 
 ---
 
+## Despliegue, operacion y monitoreo
+
+El mismo pipeline construye la imagen Docker del backend (Kaniko → Container Registry),
+valida los manifiestos de Kubernetes y los despliega en un cluster `kind` de prueba con una
+prueba de humo a traves de Nginx.
+
+```bash
+cp .env.example .env && docker compose up -d     # servidor con Docker: API en http://localhost/
+k8s/desplegar.sh                                 # cluster Kubernetes: API en :30080, Grafana en :30300
+```
+
+Nginx es el unico punto de entrada ([`devops/nginx/`](devops/nginx/)); Prometheus y Grafana
+monitorean el backend con un panel provisionado ([`devops/prometheus/`](devops/prometheus/),
+[`devops/grafana/`](devops/grafana/)). Detalle en
+[`docs/DESPLIEGUE_Y_OPERACION.md`](docs/DESPLIEGUE_Y_OPERACION.md).
+
+---
+
 ## Documentacion adicional
 
 - [`docs/GESTION_DE_LANZAMIENTO.md`](docs/GESTION_DE_LANZAMIENTO.md) — pipeline de lanzamiento, repositorio de artefactos y release
+- [`docs/DESPLIEGUE_Y_OPERACION.md`](docs/DESPLIEGUE_Y_OPERACION.md) — Docker, Kubernetes, Nginx, Prometheus y Grafana
 
 - [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) — capas, patron MVP, navegacion y extension a IA
 - [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md) — endpoints, formatos, reglas de generacion y codigos de estado

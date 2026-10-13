@@ -219,11 +219,12 @@ k8s:kind:
     - curl -sLo /usr/local/bin/kind "https://kind.sigs.k8s.io/dl/$KIND_VERSION/kind-linux-amd64" && chmod +x /usr/local/bin/kind
     - curl -sLo /usr/local/bin/kubectl "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl" && chmod +x /usr/local/bin/kubectl
   script:
-    - kind create cluster --name smartbody --config k8s/ci/kind.yaml --wait 120s
-    # El API server corre en el servicio "docker" (dind), no en localhost.
+    # Sin --wait: kind intentaria hablar con el API server por localhost, que aqui es el servicio "docker" (dind).
+    - kind create cluster --name smartbody --config k8s/ci/kind.yaml
     - PUERTO=$(kubectl config view -o jsonpath='{.clusters[?(@.name=="kind-smartbody")].cluster.server}' | sed 's#.*:##')
     - kubectl config set-cluster kind-smartbody --server="https://docker:$PUERTO" --insecure-skip-tls-verify=true
     - kubectl config unset clusters.kind-smartbody.certificate-authority-data
+    - kubectl wait --for=condition=Ready node --all --timeout=180s
     - kubectl get nodes
     - BACKEND_IMAGE="$CI_REGISTRY_IMAGE/backend:$VERSION" BACKEND_REPLICAS=1 sh k8s/desplegar.sh
     # Prueba de humo a traves de Nginx (NodePort 30080 publicado en el host de dind).
