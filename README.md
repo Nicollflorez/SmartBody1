@@ -330,12 +330,13 @@ cd android
 
 ## Integracion y entrega continua (CI/CD)
 
-Cada `push` a `main` ejecuta el pipeline de **GitHub Actions**
-([`.github/workflows/lanzamiento.yml`](.github/workflows/lanzamiento.yml)):
-Build -> Test (JUnit backend y Android) -> Package -> Publish del `jar` y el `apk` en
-**GitHub Packages**. Un lanzamiento oficial se hace desde *Actions > Run workflow* con
-`publicar_release`, que etiqueta la version (`vX.Y.Z`) y crea el GitHub Release listo para
-desplegar con [`backend/Dockerfile`](backend/Dockerfile). Hay un `Jenkinsfile` equivalente.
+Cada `push` a `main` ejecuta el pipeline de **GitLab CI/CD** ([`.gitlab-ci.yml`](.gitlab-ci.yml)):
+build -> test (JUnit backend y Android) -> package -> publish del `jar` y el `apk` en el
+**Package Registry** del proyecto. Un lanzamiento oficial se hace con *Run pipeline* y
+`PUBLICAR_RELEASE=true`: tras la aprobacion manual se etiqueta la version (`vX.Y.Z`) y se
+crea el Release listo para desplegar con [`backend/Dockerfile`](backend/Dockerfile).
+Se incluyen equivalentes para Jenkins (`Jenkinsfile`) y GitHub Actions
+([`.github/workflows/lanzamiento.yml`](.github/workflows/lanzamiento.yml)).
 Detalle en [`docs/GESTION_DE_LANZAMIENTO.md`](docs/GESTION_DE_LANZAMIENTO.md).
 
 ---

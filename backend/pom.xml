@@ -13,7 +13,7 @@
 
     <groupId>com.smartbody</groupId>
     <artifactId>smartbody-backend</artifactId>
-    <!-- Version de desarrollo. El pipeline (Jenkinsfile) quita el -SNAPSHOT al publicar un release. -->
+    <!-- Version de desarrollo. El pipeline (.gitlab-ci.yml / Jenkinsfile) quita el -SNAPSHOT al publicar un release. -->
     <version>1.0.0-SNAPSHOT</version>
     <name>smartbody-backend</name>
     <description>API REST de Smartbody</description>
@@ -23,7 +23,7 @@
         <jjwt.version>0.12.5</jjwt.version>
         <!-- Repositorio de artefactos (GitHub Packages). Jenkins los sobreescribe con -Dgithub.owner / -Dgithub.repo. -->
         <github.owner>Nicollflorez</github.owner>
-        <github.repo>SmartBody</github.repo>
+        <github.repo>SmartBody1</github.repo>
     </properties>
 
     <!-- Destino de "mvn deploy": el repositorio Maven de GitHub Packages del proyecto.
@@ -40,6 +40,27 @@
             <url>https://maven.pkg.github.com/${github.owner}/${github.repo}</url>
         </snapshotRepository>
     </distributionManagement>
+
+    <profiles>
+        <!-- Perfil para publicar en el Package Registry de GitLab (repositorio de artefactos de la Etapa 5):
+             mvnw -Pgitlab -Dgitlab.maven.url=https://gitlab.com/api/v4/projects/<ID>/packages/maven deploy
+             En GitLab CI la URL llega como $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/maven. -->
+        <profile>
+            <id>gitlab</id>
+            <distributionManagement>
+                <repository>
+                    <id>gitlab</id>
+                    <name>Smartbody - GitLab Package Registry</name>
+                    <url>${gitlab.maven.url}</url>
+                </repository>
+                <snapshotRepository>
+                    <id>gitlab</id>
+                    <name>Smartbody - GitLab Package Registry (snapshots)</name>
+                    <url>${gitlab.maven.url}</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+    </profiles>
 
     <dependencies>
         <dependency>

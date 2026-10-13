@@ -1,0 +1,198 @@
+# Pipeline de lanzamiento de Smartbody en GitLab CI/CD (Etapa 5: gestion de lanzamientos).
+#
+# Fases: version -> build -> test -> package -> publish -> release.
+#   - Cada push a main publica un SNAPSHOT en el Package Registry del proyecto (repositorio de artefactos).
+#   - "Run pipeline" con PUBLICAR_RELEASE=true: compila la version oficial; el job "publish:release"
+#     queda en espera de aprobacion manual (boton Play); al aprobarlo se publica, se etiqueta
+#     vX.Y.Z y se crea el Release de GitLab con el jar y el apk, listos para la Etapa 6.
+#
+# Corre integramente en los runners de gitlab.com: no necesita Docker ni memoria del PC de desarrollo.
+# Variable opcional del proyecto (Settings > CI/CD > Variables): GITLAB_PUSH_TOKEN (project access token
+# con write_repository) para que el release haga el commit de version y la etiqueta.
+
+stages: [version, build, test, package, publish, release]
+
+variables:
+  PUBLICAR_RELEASE:
+    value: "false"
+    description: "true: publicar version oficial (sin -SNAPSHOT), etiquetarla y crear el Release"
+  VERSION_RELEASE:
+    value: ""
+    description: "Version a liberar (ej. 1.0.0). Vacia: la del pom sin -SNAPSHOT"
+  API_BASE_URL:
+    value: "http://10.0.2.2:8080/"
+    description: "URL del backend que se compila dentro del APK (BuildConfig.API_BASE_URL)"
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  MVN: "./mvnw -B -ntp"
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  # Repositorio de artefactos: Package Registry (Maven) de este proyecto.
+  GITLAB_MAVEN_URL: "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/maven"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+default:
+  interruptible: true
+
+.backend:
+  image: eclipse-temurin:17-jdk
+  cache:
+    key: maven
+    paths: [.m2/repository]
+  before_script:
+    - cd backend
+
+.android:
+  image: ghcr.io/cirruslabs/android-sdk:36
+  cache:
+    key: gradle
+    paths: [.gradle/caches, .gradle/wrapper]
+  before_script:
+    - cd android
+    - chmod +x gradlew
+
+# ---------------------------------------------------------------- version
+version:
+  stage: version
+  extends: .backend
+  script:
+    - POM=$($MVN -q help:evaluate -Dexpression=project.version -DforceStdout)
+    - |
+      if [ "$PUBLICAR_RELEASE" = "true" ]; then
+        VERSION="${VERSION_RELEASE:-${POM%-SNAPSHOT}}"; RELEASE=true
+      else
+        VERSION="$POM"; RELEASE=false
+      fi
+    - echo "VERSION=$VERSION" >  ../version.env
+    - echo "RELEASE=$RELEASE"  >> ../version.env
+    - echo "Smartbody v$VERSION (release=$RELEASE)"
+  artifacts:
+    reports:
+      dotenv: version.env
+
+# ---------------------------------------------------------------- build
+build:backend:
+  stage: build
+  extends: .backend
+  needs: [version]
+  script:
+    - $MVN versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
+    - $MVN -DskipTests compile
+  artifacts:
+    paths: [backend/target/classes, backend/pom.xml]
+    expire_in: 1 day
+
+build:android:
+  stage: build
+  extends: .android
+  needs: [version]
+  script:
+    - ./gradlew --no-daemon assembleRelease
+        -Psmartbody.apiBaseUrl="$API_BASE_URL"
+        -Psmartbody.versionName=$VERSION
+        -Psmartbody.versionCode=$CI_PIPELINE_IID
+  artifacts:
+    paths: [android/app/build/outputs/apk/release/*.apk]
+    expire_in: 1 week
+
+# ---------------------------------------------------------------- test
+test:backend:
+  stage: test
+  extends: .backend
+  needs: [version, build:backend]
+  script:
+    - $MVN test
+  artifacts:
+    when: always
+    reports:
+      junit: backend/target/surefire-reports/TEST-*.xml
+
+test:android:
+  stage: test
+  extends: .android
+  needs: [version]
+  script:
+    - ./gradlew --no-daemon testDebugUnitTest
+        -Psmartbody.versionName=$VERSION -Psmartbody.versionCode=$CI_PIPELINE_IID
+  artifacts:
+    when: always
+    reports:
+      junit: android/app/build/test-results/testDebugUnitTest/TEST-*.xml
+
+# ---------------------------------------------------------------- package
+package:backend:
+  stage: package
+  extends: .backend
+  needs: [version, build:backend, test:backend]
+  script:
+    - $MVN -DskipTests package
+  artifacts:
+    name: "smartbody-backend-$VERSION"
+    paths: [backend/target/smartbody-backend-*.jar, backend/pom.xml]
+    expire_in: 1 week
+
+# ---------------------------------------------------------------- publish
+# Sube exactamente el jar y el apk que pasaron las pruebas (no recompila).
+.publicar:
+  stage: publish
+  extends: .backend
+  needs: [version, package:backend, build:android, test:android]
+  script:
+    - $MVN -s ../devops/maven/settings.xml deploy:deploy-file
+        -DrepositoryId=gitlab -Durl=$GITLAB_MAVEN_URL
+        -DpomFile=pom.xml -Dfile=$(ls target/smartbody-backend-*.jar)
+    - $MVN -s ../devops/maven/settings.xml deploy:deploy-file
+        -DrepositoryId=gitlab -Durl=$GITLAB_MAVEN_URL
+        -DgroupId=com.smartbody -DartifactId=smartbody-android -Dversion=$VERSION -Dpackaging=apk
+        -Dfile=$(ls ../android/app/build/outputs/apk/release/*.apk)
+    - echo "Publicado com.smartbody:smartbody-backend:$VERSION y smartbody-android:$VERSION en $GITLAB_MAVEN_URL"
+
+publish:snapshot:
+  extends: .publicar
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $PUBLICAR_RELEASE != "true"
+
+# Aprobacion del lanzamiento: queda en pausa hasta que un responsable pulse Play.
+publish:release:
+  extends: .publicar
+  interruptible: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $PUBLICAR_RELEASE == "true"
+      when: manual
+      allow_failure: false
+
+# ---------------------------------------------------------------- release
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs: [version, publish:release, package:backend, build:android]
+  interruptible: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $PUBLICAR_RELEASE == "true"
+  variables:
+    GIT_DEPTH: 0
+  script:
+    - REF="$CI_COMMIT_SHA"
+    - |
+      if [ -n "$GITLAB_PUSH_TOKEN" ]; then
+        apk add --no-cache git openjdk17-jre-headless >/dev/null
+        IFS=. read -r MAYOR MENOR PARCHE <<< "$VERSION"
+        SIGUIENTE="$MAYOR.$MENOR.$((PARCHE + 1))-SNAPSHOT"
+        git config user.name "GitLab CI"; git config user.email "ci@smartbody.local"
+        (cd backend && ./mvnw -B -ntp -q versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false)
+        git commit -am "Release v$VERSION"
+        REF=$(git rev-parse HEAD)
+        (cd backend && ./mvnw -B -ntp -q versions:set -DnewVersion=$SIGUIENTE -DgenerateBackupPoms=false)
+        git commit -am "Siguiente version de desarrollo $SIGUIENTE"
+        git push -o ci.skip "https://oauth2:${GITLAB_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" HEAD:main
+      else
+        echo "Sin GITLAB_PUSH_TOKEN: no se hace el commit de version; la etiqueta apunta al commit actual."
+      fi
+    - echo "REF=$REF" > release.env
+    - |
+      release-cli create --name "Smartbody v$VERSION" --tag-name "v$VERSION" --ref "$REF" \
+        --description "Lanzamiento v$VERSION. Artefactos en el Package Registry, listos para la Etapa 6 (Docker/Kubernetes)." \
+        --assets-link "{\"name\":\"smartbody-backend-$VERSION.jar\",\"url\":\"$GITLAB_MAVEN_URL/com/smartbody/smartbody-backend/$VERSION/smartbody-backend-$VERSION.jar\",\"link_type\":\"package\"}" \
+        --assets-link "{\"name\":\"smartbody-android-$VERSION.apk\",\"url\":\"$GITLAB_MAVEN_URL/com/smartbody/smartbody-android/$VERSION/smartbody-android-$VERSION.apk\",\"link_type\":\"package\"}"

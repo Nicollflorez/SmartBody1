@@ -30,7 +30,7 @@ pipeline {
 
     environment {
         GITHUB_OWNER   = 'Nicollflorez'
-        GITHUB_REPO    = 'SmartBody'
+        GITHUB_REPO    = 'SmartBody1'
         PACKAGES_URL   = "https://maven.pkg.github.com/${GITHUB_OWNER}/${GITHUB_REPO}"
         MAVEN_SETTINGS = "${WORKSPACE}\\devops\\maven\\settings.xml"
         // Limites de memoria para que Jenkins, Maven y Gradle convivan en 4 GB de RAM.
