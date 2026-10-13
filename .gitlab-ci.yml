@@ -26,7 +26,7 @@ spec:
       default: "http://10.0.2.2:8080/"
       description: "URL del backend que se compila dentro del APK (BuildConfig.API_BASE_URL)"
 ---
-stages: [version, build, test, package, publish, release]
+stages: [version, build, test, package, docker, deploy, publish, release]
 
 variables:
   PUBLICAR_RELEASE: "$[[ inputs.publicar_release ]]"
@@ -148,6 +148,91 @@ package:backend:
     name: "smartbody-backend-$VERSION"
     paths: [backend/target/smartbody-backend-*.jar, backend/pom.xml]
     expire_in: 1 week
+
+# ---------------------------------------------------------------- docker (Etapa 6)
+# Construye la imagen del backend con el jar que paso las pruebas y la publica en el
+# Container Registry del proyecto. Kaniko no necesita un demonio de Docker en el runner.
+docker:backend:
+  stage: docker
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
+  needs: [version, package:backend]
+  variables:
+    IMAGEN: $CI_REGISTRY_IMAGE/backend
+  script:
+    - mkdir -p /kaniko/.docker
+    - AUTH=$(printf "%s:%s" "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$AUTH\"}}}" > /kaniko/.docker/config.json
+    - DESTINOS="--destination $IMAGEN:$VERSION"
+    - if [ "$CI_COMMIT_BRANCH" = "main" ]; then DESTINOS="$DESTINOS --destination $IMAGEN:latest"; fi
+    - /kaniko/executor
+        --context "$CI_PROJECT_DIR/backend"
+        --dockerfile "$CI_PROJECT_DIR/backend/Dockerfile"
+        --build-arg JAR_FILE=target/smartbody-backend-$VERSION.jar
+        --label org.opencontainers.image.version=$VERSION
+        --label org.opencontainers.image.revision=$CI_COMMIT_SHA
+        $DESTINOS
+    - echo "Imagen publicada: $IMAGEN:$VERSION"
+
+# ---------------------------------------------------------------- deploy (Etapas 6 y 7)
+# Valida la configuracion de Nginx y los manifiestos de Kubernetes sin necesitar un cluster.
+nginx:validate:
+  stage: deploy
+  image: nginx:1.27-alpine
+  needs: []
+  script:
+    - cp devops/nginx/nginx.conf /etc/nginx/nginx.conf
+    - cp devops/nginx/proxy_params_smartbody /etc/nginx/proxy_params_smartbody
+    - echo "127.0.0.1 backend" >> /etc/hosts
+    - nginx -t
+
+k8s:validate:
+  stage: deploy
+  image: alpine/k8s:1.31.2
+  needs: []
+  script:
+    - wget -qO- https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz -C /usr/local/bin
+    - kubectl kustomize k8s/base > manifiestos.yaml
+    - kubeconform -strict -summary -kubernetes-version 1.31.0 manifiestos.yaml
+  artifacts:
+    paths: [manifiestos.yaml]
+    expire_in: 1 week
+
+# Despliegue real en un cluster Kubernetes efimero (kind) dentro del runner: aplica k8s/desplegar.sh
+# con la imagen recien publicada y comprueba la API a traves de Nginx.
+k8s:kind:
+  stage: deploy
+  image: docker:27
+  services:
+    - docker:27-dind
+  needs: [version, docker:backend, k8s:validate, nginx:validate]
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: /certs
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: /certs/client
+    KIND_VERSION: v0.24.0
+    KUBECTL_VERSION: v1.31.2
+  before_script:
+    - apk add --no-cache curl bash openssl
+    - curl -sLo /usr/local/bin/kind "https://kind.sigs.k8s.io/dl/$KIND_VERSION/kind-linux-amd64" && chmod +x /usr/local/bin/kind
+    - curl -sLo /usr/local/bin/kubectl "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl" && chmod +x /usr/local/bin/kubectl
+  script:
+    - kind create cluster --name smartbody --config k8s/ci/kind.yaml --wait 120s
+    # El API server corre en el servicio "docker" (dind), no en localhost.
+    - PUERTO=$(kubectl config view -o jsonpath='{.clusters[?(@.name=="kind-smartbody")].cluster.server}' | sed 's#.*:##')
+    - kubectl config set-cluster kind-smartbody --server="https://docker:$PUERTO" --insecure-skip-tls-verify=true
+    - kubectl config unset clusters.kind-smartbody.certificate-authority-data
+    - kubectl get nodes
+    - BACKEND_IMAGE="$CI_REGISTRY_IMAGE/backend:$VERSION" BACKEND_REPLICAS=1 sh k8s/desplegar.sh
+    # Prueba de humo a traves de Nginx (NodePort 30080 publicado en el host de dind).
+    - curl -sf http://docker:30080/api/ping
+    - curl -sf http://docker:30080/actuator/health
+    - curl -s -o /dev/null -w "%{http_code}\n" http://docker:30080/api/users/me | grep -q 401
+    - kubectl -n smartbody get pods -o wide
+  after_script:
+    - kind delete cluster --name smartbody || true
 
 # ---------------------------------------------------------------- publish
 # Sube exactamente el jar y el apk que pasaron las pruebas (no recompila).

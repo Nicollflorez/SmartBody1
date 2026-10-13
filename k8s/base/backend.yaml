@@ -1,0 +1,107 @@
+# API REST de Smartbody: varias replicas detras del Service "backend" (solo accesible dentro del cluster).
+# Todas las replicas comparten el mismo par de claves RSA (Secret "smartbody-jwt-keys", creado por
+# k8s/desplegar.sh) para que un JWT emitido por una sea valido en las demas.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: smartbody
+data:
+  SMARTBODY_DB_HOST: mysql
+  SMARTBODY_DB_PORT: "3306"
+  SMARTBODY_DB_NAME: smartbody_db
+  SMARTBODY_DB_USER: root
+  SMARTBODY_JWT_MINUTES: "180"
+  SMARTBODY_KEYS_DIR: /app/keys
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: smartbody
+  labels:
+    app: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8080
+      targetPort: http
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: smartbody
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        # Etapa 8: Prometheus descubre y raspa este pod.
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8080"
+    spec:
+      initContainers:
+        # Espera a que MySQL acepte conexiones antes de arrancar Spring Boot.
+        - name: espera-mysql
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z mysql 3306; do echo 'esperando a mysql...'; sleep 3; done"]
+      containers:
+        - name: backend
+          image: registry.gitlab.com/nicollflorez/smartbody/backend:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: smartbody-admin
+          env:
+            - name: SMARTBODY_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartbody-db
+                  key: MYSQL_ROOT_PASSWORD
+          volumeMounts:
+            - name: claves-jwt
+              mountPath: /app/keys
+              readOnly: true
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 36        # hasta 3 minutos para arrancar
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 384Mi
+            limits:
+              memory: 640Mi
+      volumes:
+        - name: claves-jwt
+          secret:
+            secretName: smartbody-jwt-keys

@@ -45,6 +45,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(rutas -> rutas
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/ping").permitAll()
                         .requestMatchers("/error").permitAll()
+                        // Sondas de Docker/Kubernetes y metricas de Prometheus: solo en la red interna
+                        // (Nginx no reenvia /actuator salvo /actuator/health).
+                        .requestMatchers("/actuator/health/**", "/actuator/prometheus").permitAll()
                         // Panel de administracion: solo cuentas con rol de administrador (403 para las demas).
                         .requestMatchers("/api/admin/**").hasAuthority(Rol.ADMINISTRADOR)
                         .anyRequest().authenticated())

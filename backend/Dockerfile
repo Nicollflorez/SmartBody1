@@ -8,17 +8,25 @@
 # Variables de entorno de la aplicacion: ver README (SMARTBODY_DB_HOST, SMARTBODY_DB_PASSWORD, ...).
 # Las claves RSA del JWT se montan como volumen en /app/keys; nunca se copian a la imagen.
 
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
 ARG JAR_FILE=target/smartbody-backend-*.jar
 COPY ${JAR_FILE} /app/app.jar
 
-RUN mkdir -p /app/keys
+# Usuario sin privilegios; /app/keys es el volumen de las claves RSA.
+RUN addgroup -S smartbody && adduser -S smartbody -G smartbody \
+    && mkdir -p /app/keys && chown -R smartbody:smartbody /app
+USER smartbody
+
 ENV SMARTBODY_KEYS_DIR=/app/keys \
     JAVA_TOOL_OPTIONS="-Xmx384m -Dfile.encoding=UTF-8"
 
 EXPOSE 8080
+
+# Spring Boot Actuator responde {"status":"UP"} cuando la app y la base de datos estan listas.
+HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=5 \
+    CMD wget -qO- http://localhost:8080/actuator/health | grep -q '"UP"' || exit 1
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

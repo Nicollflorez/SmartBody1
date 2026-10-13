@@ -1,0 +1,67 @@
+# Despliegue de Smartbody con Docker (Etapa 6) y Nginx como proxy inverso (Etapa 7).
+#
+#   docker compose up -d           # usa la imagen publicada por el pipeline (Container Registry de GitLab)
+#   docker compose up -d --build   # o construye la imagen local a partir de backend/target/*.jar
+#
+# Variables en .env (ver .env.example). La app queda en http://localhost/ (Nginx -> backend:8080).
+# El esquema y los datos iniciales de /database se cargan la primera vez que arranca MySQL.
+
+services:
+
+  mysql:
+    image: mysql:8.4
+    container_name: smartbody-mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-smartbody}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/02_datos_iniciales.sql:/docker-entrypoint-initdb.d/02_datos_iniciales.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-smartbody}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    image: ${BACKEND_IMAGE:-registry.gitlab.com/nicollflorez/smartbody/backend:latest}
+    build:
+      context: ./backend
+      args:
+        JAR_FILE: target/smartbody-backend-*.jar
+    container_name: smartbody-backend
+    environment:
+      SMARTBODY_DB_HOST: mysql
+      SMARTBODY_DB_PORT: "3306"
+      SMARTBODY_DB_NAME: smartbody_db
+      SMARTBODY_DB_USER: root
+      SMARTBODY_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-smartbody}
+      SMARTBODY_JWT_MINUTES: ${SMARTBODY_JWT_MINUTES:-180}
+      SMARTBODY_ADMIN_EMAIL: ${SMARTBODY_ADMIN_EMAIL:-}
+      SMARTBODY_ADMIN_PASSWORD: ${SMARTBODY_ADMIN_PASSWORD:-}
+    volumes:
+      - jwt_keys:/app/keys          # la clave privada vive solo aqui
+    depends_on:
+      mysql:
+        condition: service_healthy
+    expose:
+      - "8080"                      # solo accesible a traves de Nginx
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: smartbody-nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./devops/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./devops/nginx/proxy_params_smartbody:/etc/nginx/proxy_params_smartbody:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  jwt_keys:

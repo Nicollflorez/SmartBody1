@@ -1,5 +1,22 @@
 server:
   port: 8080
+  # Termina las peticiones en curso antes de apagarse (Kubernetes envia SIGTERM al reemplazar pods).
+  shutdown: graceful
+
+# Actuator: /actuator/health (sondas liveness/readiness) y /actuator/prometheus (metricas).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  metrics:
+    tags:
+      application: smartbody-backend
 
 spring:
   application:
