@@ -14,7 +14,7 @@
     <groupId>com.smartbody</groupId>
     <artifactId>smartbody-backend</artifactId>
     <!-- Version de desarrollo. El pipeline (.gitlab-ci.yml / Jenkinsfile) quita el -SNAPSHOT al publicar un release. -->
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.2-SNAPSHOT</version>
     <name>smartbody-backend</name>
     <description>API REST de Smartbody</description>
 
