@@ -75,6 +75,12 @@ version:
       else
         VERSION="$POM"; RELEASE=false
       fi
+    # Un release no puede reutilizar una etiqueta: se comprueba aqui para fallar en el primer minuto.
+    - |
+      if [ "$RELEASE" = "true" ] && curl -sf -o /dev/null "$CI_API_V4_URL/projects/$CI_PROJECT_ID/repository/tags/v$VERSION"; then
+        echo "ERROR: la etiqueta v$VERSION ya existe. Indica otra version en el input version_release."
+        exit 1
+      fi
     - echo "VERSION=$VERSION" >  ../version.env
     - echo "RELEASE=$RELEASE"  >> ../version.env
     - echo "Smartbody v$VERSION (release=$RELEASE)"
