@@ -2,7 +2,7 @@
 #
 # Fases: version -> build -> test -> package -> publish -> release.
 #   - Cada push a main publica un SNAPSHOT en el Package Registry del proyecto (repositorio de artefactos).
-#   - "Run pipeline" con PUBLICAR_RELEASE=true: compila la version oficial; el job "publish:release"
+#   - "Run pipeline" con el input publicar_release=true: compila la version oficial; el job "publish:release"
 #     queda en espera de aprobacion manual (boton Play); al aprobarlo se publica, se etiqueta
 #     vX.Y.Z y se crea el Release de GitLab con el jar y el apk, listos para la Etapa 6.
 #
@@ -10,18 +10,28 @@
 # Variable opcional del proyecto (Settings > CI/CD > Variables): GITLAB_PUSH_TOKEN (project access token
 # con write_repository) para que el release haga el commit de version y la etiqueta.
 
+# Opciones del formulario "Run pipeline" (Build > Pipelines > New pipeline > Inputs).
+spec:
+  inputs:
+    publicar_release:
+      type: boolean
+      default: false
+      description: "Publicar version oficial (sin -SNAPSHOT), etiquetarla y crear el Release"
+    version_release:
+      type: string
+      default: ""
+      description: "Version a liberar (ej. 1.0.0). Vacia: la del pom sin -SNAPSHOT"
+    api_base_url:
+      type: string
+      default: "http://10.0.2.2:8080/"
+      description: "URL del backend que se compila dentro del APK (BuildConfig.API_BASE_URL)"
+---
 stages: [version, build, test, package, publish, release]
 
 variables:
-  PUBLICAR_RELEASE:
-    value: "false"
-    description: "true: publicar version oficial (sin -SNAPSHOT), etiquetarla y crear el Release"
-  VERSION_RELEASE:
-    value: ""
-    description: "Version a liberar (ej. 1.0.0). Vacia: la del pom sin -SNAPSHOT"
-  API_BASE_URL:
-    value: "http://10.0.2.2:8080/"
-    description: "URL del backend que se compila dentro del APK (BuildConfig.API_BASE_URL)"
+  PUBLICAR_RELEASE: "$[[ inputs.publicar_release ]]"
+  VERSION_RELEASE: "$[[ inputs.version_release ]]"
+  API_BASE_URL: "$[[ inputs.api_base_url ]]"
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
   MVN: "./mvnw -B -ntp"
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"

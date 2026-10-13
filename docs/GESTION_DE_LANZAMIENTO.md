@@ -69,7 +69,7 @@ compartidos de gitlab.com. Se dispara:
 |--------|----------|
 | Merge request hacia `main` | build + test de backend y Android. No publica nada. |
 | `push` a `main` | build + test + package + **publish:snapshot** en el Package Registry. |
-| *Build > Pipelines > Run pipeline* con `PUBLICAR_RELEASE = true` | Todo lo anterior con la version oficial; `publish:release` espera aprobacion y luego **release** (tag + Release). |
+| *Build > Pipelines > New pipeline* con el input `publicar_release` marcado | Todo lo anterior con la version oficial; `publish:release` espera aprobacion y luego **release** (tag + Release). |
 
 Equivalentes incluidos en el repositorio para las otras herramientas del plan:
 
@@ -95,9 +95,9 @@ los binarios que pasaron las pruebas (no recompila): principio de promocion de a
 
 ## Paso 4. Transicion al despliegue (Etapa 6)
 
-1. Un responsable ejecuta *Build > Pipelines > Run pipeline* en `main` con la variable
-   `PUBLICAR_RELEASE = true` (y opcionalmente `VERSION_RELEASE` y la `API_BASE_URL` real del
-   servidor que llevara el APK).
+1. Un responsable ejecuta *Build > Pipelines > New pipeline* en `main` y marca el input
+   `publicar_release` (opcionalmente `version_release` y la `api_base_url` real del servidor
+   que llevara el APK). Los inputs se declaran en `spec:inputs` al inicio de `.gitlab-ci.yml`.
 2. El pipeline compila y prueba la version oficial y se **detiene en `publish:release`**,
    un job manual: la aprobacion del lanzamiento es pulsar *Play*.
 3. Al aprobarse:
@@ -126,7 +126,7 @@ los binarios que pasaron las pruebas (no recompila): principio de promocion de a
    cobro) la primera vez.
 2. (Opcional) *Settings > CI/CD > Variables*: `GITLAB_PUSH_TOKEN` (protegido y enmascarado)
    para que el release haga el commit de version.
-3. Para liberar: *Build > Pipelines > Run pipeline* > `PUBLICAR_RELEASE = true` > aprobar
+3. Para liberar: *Build > Pipelines > New pipeline* > marcar `publicar_release` > aprobar
    `publish:release` con *Play*.
 
 ## Evidencias sugeridas para la entrega
