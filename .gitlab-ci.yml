@@ -149,6 +149,47 @@ package:backend:
     paths: [backend/target/smartbody-backend-*.jar, backend/pom.xml]
     expire_in: 1 week
 
+# ---------------------------------------------------------------- microservicios (services/)
+.servicios:
+  image: eclipse-temurin:17-jdk
+  cache:
+    key: maven
+    paths: [.m2/repository]
+  before_script:
+    - cd services
+
+build:servicios:
+  stage: build
+  extends: .servicios
+  needs: [version]
+  script:
+    - $MVN versions:set -DnewVersion=$VERSION -DprocessAllModules -DgenerateBackupPoms=false
+    - $MVN -DskipTests compile
+
+test:servicios:
+  stage: test
+  extends: .servicios
+  needs: [version]
+  script:
+    - $MVN versions:set -DnewVersion=$VERSION -DprocessAllModules -DgenerateBackupPoms=false
+    - $MVN test
+  artifacts:
+    when: always
+    reports:
+      junit: services/*/target/surefire-reports/TEST-*.xml
+
+package:servicios:
+  stage: package
+  extends: .servicios
+  needs: [version, build:servicios, test:servicios]
+  script:
+    - $MVN versions:set -DnewVersion=$VERSION -DprocessAllModules -DgenerateBackupPoms=false
+    - $MVN -DskipTests package
+  artifacts:
+    name: "smartbody-servicios-$VERSION"
+    paths: [services/*/target/smartbody-*.jar]
+    expire_in: 1 week
+
 # ---------------------------------------------------------------- docker (Etapa 6)
 # Construye la imagen del backend con el jar que paso las pruebas y la publica en el
 # Container Registry del proyecto. Kaniko no necesita un demonio de Docker en el runner.
@@ -175,6 +216,33 @@ docker:backend:
         $DESTINOS
     - 'echo "Imagen publicada: $IMAGEN:$VERSION"'
 
+# Una imagen por microservicio (auth, planes, progreso, admin) a partir de los jars ya probados.
+docker:servicios:
+  stage: docker
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
+  needs: [version, package:servicios]
+  parallel:
+    matrix:
+      - SERVICIO: [auth, planes, progreso, admin]
+  script:
+    - mkdir -p /kaniko/.docker
+    - AUTH=$(printf "%s:%s" "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$AUTH\"}}}" > /kaniko/.docker/config.json
+    - IMAGEN="$CI_REGISTRY_IMAGE/$SERVICIO"
+    - DESTINOS="--destination $IMAGEN:$VERSION"
+    - if [ "$CI_COMMIT_BRANCH" = "main" ]; then DESTINOS="$DESTINOS --destination $IMAGEN:latest"; fi
+    - /kaniko/executor
+        --context "$CI_PROJECT_DIR/services"
+        --dockerfile "$CI_PROJECT_DIR/services/Dockerfile"
+        --build-arg SERVICIO=$SERVICIO
+        --build-arg VERSION=$VERSION
+        --label org.opencontainers.image.version=$VERSION
+        --label org.opencontainers.image.revision=$CI_COMMIT_SHA
+        $DESTINOS
+    - 'echo "Imagen publicada: $IMAGEN:$VERSION"'
+
 # ---------------------------------------------------------------- deploy (Etapas 6 y 7)
 # Valida la configuracion de Nginx y los manifiestos de Kubernetes sin necesitar un cluster.
 nginx:validate:
@@ -182,10 +250,10 @@ nginx:validate:
   image: nginx:1.27-alpine
   needs: []
   script:
-    - cp devops/nginx/nginx.conf /etc/nginx/nginx.conf
     - cp devops/nginx/proxy_params_smartbody /etc/nginx/proxy_params_smartbody
-    - echo "127.0.0.1 backend" >> /etc/hosts
-    - nginx -t
+    - echo "127.0.0.1 backend auth planes progreso admin" >> /etc/hosts
+    - cp devops/nginx/nginx.conf /etc/nginx/nginx.conf && nginx -t
+    - cp devops/nginx/gateway.conf /etc/nginx/nginx.conf && nginx -t
 
 k8s:validate:
   stage: deploy
@@ -194,9 +262,10 @@ k8s:validate:
   script:
     - wget -qO- https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz -C /usr/local/bin
     - kubectl kustomize k8s/base > manifiestos.yaml
-    - kubeconform -strict -summary -kubernetes-version 1.31.0 manifiestos.yaml
+    - kubectl kustomize k8s/microservicios > manifiestos-microservicios.yaml
+    - kubeconform -strict -summary -kubernetes-version 1.31.0 manifiestos.yaml manifiestos-microservicios.yaml
   artifacts:
-    paths: [manifiestos.yaml]
+    paths: [manifiestos.yaml, manifiestos-microservicios.yaml]
     expire_in: 1 week
 
 # Despliegue real en un cluster Kubernetes efimero (kind) dentro del runner: aplica k8s/desplegar.sh
@@ -242,6 +311,45 @@ k8s:kind:
     when: always
     reports:
       junit: e2e-api.xml
+
+# Misma prueba con la arquitectura de microservicios: las cuatro imagenes detras del gateway deben
+# pasar exactamente la misma coleccion end-to-end que el monolito.
+k8s:kind:microservicios:
+  stage: deploy
+  image: docker:27
+  services:
+    - docker:27-dind
+  needs: [version, docker:servicios, k8s:validate, nginx:validate]
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: /certs
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: /certs/client
+    KIND_VERSION: v0.24.0
+    KUBECTL_VERSION: v1.31.2
+  before_script:
+    - apk add --no-cache curl bash openssl
+    - curl -sLo /usr/local/bin/kind "https://kind.sigs.k8s.io/dl/$KIND_VERSION/kind-linux-amd64" && chmod +x /usr/local/bin/kind
+    - curl -sLo /usr/local/bin/kubectl "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl" && chmod +x /usr/local/bin/kubectl
+  script:
+    - kind create cluster --name smartbody --config k8s/ci/kind.yaml
+    - PUERTO=$(kubectl config view -o jsonpath='{.clusters[?(@.name=="kind-smartbody")].cluster.server}' | sed 's#.*:##')
+    - kubectl config set-cluster kind-smartbody --server="https://docker:$PUERTO" --insecure-skip-tls-verify=true
+    - kubectl config unset clusters.kind-smartbody.certificate-authority-data
+    - kubectl wait --for=condition=Ready node --all --timeout=180s
+    - REGISTRO="$CI_REGISTRY_IMAGE" VERSION="$VERSION" sh k8s/desplegar-microservicios.sh
+    - curl -sf http://docker:30080/api/ping
+    - curl -s -o /dev/null -w "%{http_code}\n" http://docker:30080/internal/usuarios | grep -q 404
+    - kubectl -n smartbody get pods -o wide
+    - apk add --no-cache nodejs npm >/dev/null && npm install -g --silent newman
+    - newman run tests/e2e/smartbody.postman_collection.json --env-var baseUrl=http://docker:30080
+        --reporters cli,junit --reporter-junit-export e2e-api-microservicios.xml
+  after_script:
+    - kind delete cluster --name smartbody || true
+  artifacts:
+    when: always
+    reports:
+      junit: e2e-api-microservicios.xml
 
 # ---------------------------------------------------------------- publish
 # Sube exactamente el jar y el apk que pasaron las pruebas (no recompila).
@@ -293,9 +401,11 @@ release:
         SIGUIENTE="$MAYOR.$MENOR.$((PARCHE + 1))-SNAPSHOT"
         git config user.name "GitLab CI"; git config user.email "ci@smartbody.local"
         (cd backend && ./mvnw -B -ntp -q versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false)
+        (cd services && ./mvnw -B -ntp -q versions:set -DnewVersion=$VERSION -DprocessAllModules -DgenerateBackupPoms=false)
         git commit -am "Release v$VERSION"
         REF=$(git rev-parse HEAD)
         (cd backend && ./mvnw -B -ntp -q versions:set -DnewVersion=$SIGUIENTE -DgenerateBackupPoms=false)
+        (cd services && ./mvnw -B -ntp -q versions:set -DnewVersion=$SIGUIENTE -DprocessAllModules -DgenerateBackupPoms=false)
         git commit -am "Siguiente version de desarrollo $SIGUIENTE"
         git push -o ci.skip "https://oauth2:${GITLAB_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" HEAD:main
       else

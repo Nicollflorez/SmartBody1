@@ -1,0 +1,25 @@
+# Etapa 8 en microservicios: Prometheus raspa /actuator/prometheus de los cuatro servicios.
+# La etiqueta "application" (Micrometer) distingue cada uno en el panel de Grafana.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - alertas.yml
+
+scrape_configs:
+  - job_name: smartbody-backend
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["auth:8080"]
+        labels: { servicio: auth }
+      - targets: ["planes:8080"]
+        labels: { servicio: planes }
+      - targets: ["progreso:8080"]
+        labels: { servicio: progreso }
+      - targets: ["admin:8080"]
+        labels: { servicio: admin }
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

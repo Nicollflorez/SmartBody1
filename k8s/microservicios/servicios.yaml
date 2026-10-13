@@ -1,0 +1,341 @@
+# Los cuatro microservicios de Smartbody. Comparten la configuracion de base de datos y el token
+# interno; cada uno apunta a su propio esquema. Las claves del JWT vienen del Secret
+# "smartbody-jwt-keys": auth monta las dos, los demas solo la publica.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: servicios-config
+  namespace: smartbody
+data:
+  SMARTBODY_DB_HOST: mysql
+  SMARTBODY_DB_PORT: "3306"
+  SMARTBODY_DB_USER: root
+  SMARTBODY_JWT_MINUTES: "180"
+  SMARTBODY_KEYS_DIR: /app/keys
+  SMARTBODY_URL_AUTH: http://auth:8080
+  SMARTBODY_URL_PLANES: http://planes:8080
+  SMARTBODY_URL_PROGRESO: http://progreso:8080
+---
+# ---------------------------------------------------------------- auth
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth
+  namespace: smartbody
+spec:
+  selector:
+    app: auth
+  ports:
+    - port: 8080
+      targetPort: http
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth
+  namespace: smartbody
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth
+  template:
+    metadata:
+      labels:
+        app: auth
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8080"
+    spec:
+      initContainers:
+        - name: espera-mysql
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z mysql 3306; do sleep 3; done"]
+      containers:
+        - name: auth
+          image: registry.gitlab.com/nicollflorez/smartbody/auth:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: servicios-config
+            - secretRef:
+                name: smartbody-admin
+          env:
+            - name: SMARTBODY_DB_NAME
+              value: smartbody_auth
+            - name: SMARTBODY_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartbody-db
+                  key: MYSQL_ROOT_PASSWORD
+            - name: SMARTBODY_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: smartbody-interno
+                  key: token
+          volumeMounts:
+            - name: claves-jwt
+              mountPath: /app/keys
+              readOnly: true
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 5
+            failureThreshold: 36
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 200m, memory: 320Mi }
+            limits: { memory: 512Mi }
+      volumes:
+        - name: claves-jwt
+          secret:
+            secretName: smartbody-jwt-keys
+---
+# ---------------------------------------------------------------- planes
+apiVersion: v1
+kind: Service
+metadata:
+  name: planes
+  namespace: smartbody
+spec:
+  selector:
+    app: planes
+  ports:
+    - port: 8080
+      targetPort: http
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planes
+  namespace: smartbody
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: planes
+  template:
+    metadata:
+      labels:
+        app: planes
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8080"
+    spec:
+      initContainers:
+        - name: espera-mysql
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z mysql 3306; do sleep 3; done"]
+      containers:
+        - name: planes
+          image: registry.gitlab.com/nicollflorez/smartbody/planes:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: servicios-config
+          env:
+            - name: SMARTBODY_DB_NAME
+              value: smartbody_planes
+            - name: SMARTBODY_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartbody-db
+                  key: MYSQL_ROOT_PASSWORD
+            - name: SMARTBODY_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: smartbody-interno
+                  key: token
+          volumeMounts:
+            - name: clave-publica
+              mountPath: /app/keys
+              readOnly: true
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 5
+            failureThreshold: 36
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 200m, memory: 320Mi }
+            limits: { memory: 512Mi }
+      volumes:
+        - name: clave-publica
+          secret:
+            secretName: smartbody-jwt-keys
+            items:
+              - key: public_key.pem
+                path: public_key.pem
+---
+# ---------------------------------------------------------------- progreso
+apiVersion: v1
+kind: Service
+metadata:
+  name: progreso
+  namespace: smartbody
+spec:
+  selector:
+    app: progreso
+  ports:
+    - port: 8080
+      targetPort: http
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: progreso
+  namespace: smartbody
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: progreso
+  template:
+    metadata:
+      labels:
+        app: progreso
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8080"
+    spec:
+      initContainers:
+        - name: espera-mysql
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z mysql 3306; do sleep 3; done"]
+      containers:
+        - name: progreso
+          image: registry.gitlab.com/nicollflorez/smartbody/progreso:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: servicios-config
+          env:
+            - name: SMARTBODY_DB_NAME
+              value: smartbody_progreso
+            - name: SMARTBODY_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartbody-db
+                  key: MYSQL_ROOT_PASSWORD
+            - name: SMARTBODY_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: smartbody-interno
+                  key: token
+          volumeMounts:
+            - name: clave-publica
+              mountPath: /app/keys
+              readOnly: true
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 5
+            failureThreshold: 36
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 200m, memory: 320Mi }
+            limits: { memory: 512Mi }
+      volumes:
+        - name: clave-publica
+          secret:
+            secretName: smartbody-jwt-keys
+            items:
+              - key: public_key.pem
+                path: public_key.pem
+---
+# ---------------------------------------------------------------- admin (sin base de datos)
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin
+  namespace: smartbody
+spec:
+  selector:
+    app: admin
+  ports:
+    - port: 8080
+      targetPort: http
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin
+  namespace: smartbody
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin
+  template:
+    metadata:
+      labels:
+        app: admin
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+        - name: admin
+          image: registry.gitlab.com/nicollflorez/smartbody/admin:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: servicios-config
+          env:
+            - name: SMARTBODY_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: smartbody-interno
+                  key: token
+          volumeMounts:
+            - name: clave-publica
+              mountPath: /app/keys
+              readOnly: true
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 5
+            failureThreshold: 36
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 448Mi }
+      volumes:
+        - name: clave-publica
+          secret:
+            secretName: smartbody-jwt-keys
+            items:
+              - key: public_key.pem
+                path: public_key.pem

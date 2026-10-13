@@ -1,0 +1,67 @@
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: smartbody-auth
+
+  datasource:
+    url: jdbc:mysql://${SMARTBODY_DB_HOST:localhost}:${SMARTBODY_DB_PORT:3306}/${SMARTBODY_DB_NAME:smartbody_auth}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
+    username: ${SMARTBODY_DB_USER:root}
+    password: ${SMARTBODY_DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  jackson:
+    default-property-inclusion: non_null
+
+  servlet:
+    multipart:
+      max-file-size: 1MB
+      max-request-size: 1MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+smartbody:
+  jwt:
+    issuer: smartbody-api
+    expiration-minutes: ${SMARTBODY_JWT_MINUTES:180}
+    keys-dir: ${SMARTBODY_KEYS_DIR:./keys}
+    # auth es el unico servicio con la clave privada: carga el par completo.
+    solo-publica: false
+  interno:
+    token: ${SMARTBODY_INTERNAL_TOKEN:}
+  servicios:
+    planes: ${SMARTBODY_URL_PLANES:http://localhost:8082}
+    progreso: ${SMARTBODY_URL_PROGRESO:http://localhost:8083}
+  admin:
+    email: ${SMARTBODY_ADMIN_EMAIL:}
+    password: ${SMARTBODY_ADMIN_PASSWORD:}
+    nombre: ${SMARTBODY_ADMIN_NOMBRE:Administrador}
+
+logging:
+  level:
+    root: INFO
+    com.smartbody: INFO
+    org.hibernate.SQL: WARN

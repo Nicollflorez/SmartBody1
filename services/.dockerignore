@@ -1,0 +1,3 @@
+# Solo los jars entran en el contexto de construccion.
+*
+!*/target/smartbody-*.jar

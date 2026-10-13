@@ -12,7 +12,7 @@ set -eu
 RAIZ=$(cd "$(dirname "$0")/.." && pwd)
 NS=smartbody
 
-kubectl apply -f "$RAIZ/k8s/base/namespace.yaml"
+kubectl apply -f "$RAIZ/k8s/comun/namespace.yaml"
 
 kubectl -n $NS create configmap smartbody-sql --from-file="$RAIZ/database" \
     --dry-run=client -o yaml | kubectl apply -f -

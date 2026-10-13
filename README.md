@@ -369,9 +369,29 @@ monitorean el backend con un panel provisionado ([`devops/prometheus/`](devops/p
 
 ---
 
+## Microservicios
+
+El backend tambien existe partido en cuatro microservicios ([`services/`](services/)):
+`auth` (cuenta, JWT, perfil), `planes` (catalogos, rutinas, nutricion), `progreso` (medidas,
+chatbot) y `admin` (panel), detras de Nginx como API gateway con las mismas rutas, de modo que
+la app Android no cambia. Cada servicio tiene su esquema ([`database/microservicios/`](database/microservicios/)),
+su imagen y sus pruebas; el pipeline los despliega en kind y ejecuta la misma coleccion
+end-to-end que al monolito.
+
+```bash
+docker compose -f docker-compose.microservicios.yml up -d   # servidor con Docker
+k8s/desplegar-microservicios.sh                             # cluster Kubernetes
+```
+
+Diseno, comunicacion entre servicios y seguridad en
+[`docs/ARQUITECTURA_MICROSERVICIOS.md`](docs/ARQUITECTURA_MICROSERVICIOS.md).
+
+---
+
 ## Documentacion adicional
 
 - [`docs/GESTION_DE_LANZAMIENTO.md`](docs/GESTION_DE_LANZAMIENTO.md) — pipeline de lanzamiento, repositorio de artefactos y release
+- [`docs/ARQUITECTURA_MICROSERVICIOS.md`](docs/ARQUITECTURA_MICROSERVICIOS.md) — division en auth, planes, progreso y admin, gateway y seguridad entre servicios
 - [`docs/DESPLIEGUE_Y_OPERACION.md`](docs/DESPLIEGUE_Y_OPERACION.md) — Docker, Kubernetes, Nginx, Prometheus y Grafana
 - [`docs/PLANIFICACION_TRELLO.md`](docs/PLANIFICACION_TRELLO.md) — listas, etiquetas y tarjetas del tablero de planificacion
 

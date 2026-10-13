@@ -1,0 +1,13 @@
+# Infraestructura compartida por las dos variantes de despliegue (monolito y microservicios):
+# namespace, secretos de desarrollo, MySQL, Nginx y monitoreo.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: smartbody
+
+resources:
+  - namespace.yaml
+  - secrets.yaml
+  - mysql.yaml
+  - nginx.yaml
+  - monitoreo.yaml

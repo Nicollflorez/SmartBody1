@@ -1,0 +1,16 @@
+# Smartbody en microservicios: reutiliza la infraestructura comun (k8s/comun: namespace, secretos, MySQL, Nginx como gateway y
+# monitoreo) y reemplaza el backend monolitico por los cuatro servicios.
+#   k8s/desplegar-microservicios.sh   (crea los ConfigMaps/Secrets y aplica este kustomization)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: smartbody
+
+resources:
+  - ../comun
+  - servicios.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: smartbody
+      app.kubernetes.io/variant: microservicios

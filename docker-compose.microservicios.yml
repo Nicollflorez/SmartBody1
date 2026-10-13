@@ -1,0 +1,158 @@
+# Smartbody en microservicios: MySQL (3 esquemas) + auth, planes, progreso, admin + Nginx (API gateway)
+# + Prometheus y Grafana.
+#
+#   docker compose -f docker-compose.microservicios.yml up -d
+#   curl http://localhost/api/ping
+#
+# La app Android no cambia: habla con http://<host>/ y el gateway enruta a cada servicio.
+# Las claves del JWT se generan en el volumen jwt_keys por el servicio auth; los demas montan
+# el mismo volumen en solo lectura y usan unicamente public_key.pem.
+
+x-servicio: &servicio
+  restart: unless-stopped
+  environment: &entorno
+    SMARTBODY_DB_HOST: mysql
+    SMARTBODY_DB_PORT: "3306"
+    SMARTBODY_DB_USER: root
+    SMARTBODY_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-smartbody}
+    SMARTBODY_JWT_MINUTES: ${SMARTBODY_JWT_MINUTES:-180}
+    SMARTBODY_INTERNAL_TOKEN: ${SMARTBODY_INTERNAL_TOKEN:-cambiar-token-interno}
+    SMARTBODY_URL_AUTH: http://auth:8080
+    SMARTBODY_URL_PLANES: http://planes:8080
+    SMARTBODY_URL_PROGRESO: http://progreso:8080
+  depends_on:
+    mysql:
+      condition: service_healthy
+
+services:
+
+  mysql:
+    image: mysql:8.4
+    container_name: smartbody-mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-smartbody}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/microservicios/01_auth.sql:/docker-entrypoint-initdb.d/01_auth.sql:ro
+      - ./database/microservicios/02_planes.sql:/docker-entrypoint-initdb.d/02_planes.sql:ro
+      - ./database/microservicios/03_progreso.sql:/docker-entrypoint-initdb.d/03_progreso.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-smartbody}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  auth:
+    <<: *servicio
+    image: ${REGISTRO:-registry.gitlab.com/nicollflorez/smartbody}/auth:${VERSION:-latest}
+    build:
+      context: ./services
+      args: { SERVICIO: auth, VERSION: "${VERSION_JAR:-1.0.4-SNAPSHOT}" }
+    container_name: smartbody-auth
+    environment:
+      <<: *entorno
+      SMARTBODY_DB_NAME: smartbody_auth
+      SMARTBODY_ADMIN_EMAIL: ${SMARTBODY_ADMIN_EMAIL:-}
+      SMARTBODY_ADMIN_PASSWORD: ${SMARTBODY_ADMIN_PASSWORD:-}
+    volumes:
+      - jwt_keys:/app/keys
+
+  planes:
+    <<: *servicio
+    image: ${REGISTRO:-registry.gitlab.com/nicollflorez/smartbody}/planes:${VERSION:-latest}
+    build:
+      context: ./services
+      args: { SERVICIO: planes, VERSION: "${VERSION_JAR:-1.0.4-SNAPSHOT}" }
+    container_name: smartbody-planes
+    environment:
+      <<: *entorno
+      SMARTBODY_DB_NAME: smartbody_planes
+    volumes:
+      - jwt_keys:/app/keys:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+
+  progreso:
+    <<: *servicio
+    image: ${REGISTRO:-registry.gitlab.com/nicollflorez/smartbody}/progreso:${VERSION:-latest}
+    build:
+      context: ./services
+      args: { SERVICIO: progreso, VERSION: "${VERSION_JAR:-1.0.4-SNAPSHOT}" }
+    container_name: smartbody-progreso
+    environment:
+      <<: *entorno
+      SMARTBODY_DB_NAME: smartbody_progreso
+    volumes:
+      - jwt_keys:/app/keys:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+
+  admin:
+    <<: *servicio
+    image: ${REGISTRO:-registry.gitlab.com/nicollflorez/smartbody}/admin:${VERSION:-latest}
+    build:
+      context: ./services
+      args: { SERVICIO: admin, VERSION: "${VERSION_JAR:-1.0.4-SNAPSHOT}" }
+    container_name: smartbody-admin
+    volumes:
+      - jwt_keys:/app/keys:ro
+    depends_on:
+      auth:
+        condition: service_healthy
+
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: smartbody-gateway
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./devops/nginx/gateway.conf:/etc/nginx/nginx.conf:ro
+      - ./devops/nginx/proxy_params_smartbody:/etc/nginx/proxy_params_smartbody:ro
+    depends_on:
+      - auth
+      - planes
+      - progreso
+      - admin
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: smartbody-prometheus
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d"]
+    volumes:
+      - ./devops/prometheus/prometheus.microservicios.yml:/etc/prometheus/prometheus.yml:ro
+      - ./devops/prometheus/alertas.yml:/etc/prometheus/alertas.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    container_name: smartbody-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-smartbody}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./devops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  jwt_keys:
+  prometheus_data:
+  grafana_data:

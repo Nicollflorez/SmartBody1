@@ -6,6 +6,8 @@ backend/keys/
 
 # --- Backend (Maven) ---
 backend/target/
+services/*/target/
+services/*/keys/
 
 # --- Android (Gradle) ---
 android/local.properties
