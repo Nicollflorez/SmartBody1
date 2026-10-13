@@ -184,11 +184,12 @@ release:
   variables:
     GIT_DEPTH: 0
   script:
+    # La imagen release-cli usa sh (Alpine): solo sintaxis POSIX en este script.
     - REF="$CI_COMMIT_SHA"
     - |
       if [ -n "$GITLAB_PUSH_TOKEN" ]; then
         apk add --no-cache git openjdk17-jre-headless >/dev/null
-        IFS=. read -r MAYOR MENOR PARCHE <<< "$VERSION"
+        MAYOR=${VERSION%%.*}; RESTO=${VERSION#*.}; MENOR=${RESTO%%.*}; PARCHE=${RESTO#*.}
         SIGUIENTE="$MAYOR.$MENOR.$((PARCHE + 1))-SNAPSHOT"
         git config user.name "GitLab CI"; git config user.email "ci@smartbody.local"
         (cd backend && ./mvnw -B -ntp -q versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false)
