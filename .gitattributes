@@ -1,0 +1,12 @@
+# Los scripts de los wrappers deben conservar LF para ejecutarse en los runners Linux de GitHub Actions.
+* text=auto
+mvnw text eol=lf
+gradlew text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.jar binary
+*.apk binary

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tema base de la Activity. Los colores reales de la interfaz se definen
+     con Material 3 en Jetpack Compose (view/theme/Theme.kt). -->
+<resources>
+    <style name="Theme.Smartbody" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/smartbody_background</item>
+        <item name="android:navigationBarColor">@color/smartbody_background</item>
+        <item name="android:windowBackground">@color/smartbody_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

@@ -1,0 +1,30 @@
+# --- Claves y secretos (NUNCA subir al repositorio) ---
+backend/keys/
+*.pem
+*.env
+.env
+
+# --- Backend (Maven) ---
+backend/target/
+
+# --- Android (Gradle) ---
+android/local.properties
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/build/
+android/captures/
+android/.cxx/
+
+# --- Jenkins local (devops/jenkins/run-jenkins.ps1) ---
+devops/jenkins/home/
+devops/jenkins/*.war
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+
+# --- Sistema operativo ---
+Thumbs.db
+.DS_Store

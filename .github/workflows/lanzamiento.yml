@@ -1,0 +1,232 @@
+# Pipeline de lanzamiento de Smartbody (Etapa 5: gestion de lanzamientos).
+#
+# Fases: Version -> Build + Test (backend y Android en paralelo) -> Package -> Publish -> Release.
+#   - Cada push a main publica un SNAPSHOT en GitHub Packages (repositorio de artefactos).
+#   - "Run workflow" con publicar_release=true: publica la version oficial, la etiqueta en Git
+#     (vX.Y.Z), crea el GitHub Release con el jar y el APK, y deja todo listo para la Etapa 6.
+#
+# Corre integramente en los servidores de GitHub: no necesita Docker ni memoria del PC de desarrollo.
+# Equivalente para Jenkins: ver Jenkinsfile en la raiz del proyecto.
+
+name: Lanzamiento Smartbody
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publicar_release:
+        description: 'Publicar version oficial (sin -SNAPSHOT), etiquetarla y crear el Release'
+        type: boolean
+        default: false
+      version_release:
+        description: 'Version a liberar (ej. 1.0.0). Vacia: la del pom sin -SNAPSHOT'
+        type: string
+        default: ''
+      api_base_url:
+        description: 'URL del backend que se compila dentro del APK (BuildConfig.API_BASE_URL)'
+        type: string
+        default: 'http://10.0.2.2:8080/'
+
+permissions:
+  contents: write    # commit de version, tag y GitHub Release
+  packages: write    # GitHub Packages
+  checks: write      # reportes de pruebas en la pestana Checks
+
+concurrency:
+  group: lanzamiento-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PACKAGES_URL: https://maven.pkg.github.com/${{ github.repository }}
+  MVN: ./mvnw -B -ntp
+
+jobs:
+
+  version:
+    name: Version del lanzamiento
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.calcular.outputs.version }}
+      release: ${{ steps.calcular.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Calcular la version
+        id: calcular
+        working-directory: backend
+        run: |
+          POM=$($MVN -q help:evaluate -Dexpression=project.version -DforceStdout)
+          if [ "${{ inputs.publicar_release }}" = "true" ]; then
+            VERSION="${{ inputs.version_release }}"
+            [ -z "$VERSION" ] && VERSION="${POM%-SNAPSHOT}"
+            RELEASE=true
+          else
+            VERSION="$POM"
+            RELEASE=false
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release=$RELEASE"  >> "$GITHUB_OUTPUT"
+          echo "### Smartbody v$VERSION (release=$RELEASE)" >> "$GITHUB_STEP_SUMMARY"
+
+  backend:
+    name: Backend - Build, Test y Package
+    needs: version
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Fijar version
+        run: $MVN versions:set -DnewVersion=${{ needs.version.outputs.version }} -DgenerateBackupPoms=false
+      - name: Build (compilar)
+        run: $MVN -DskipTests compile
+      - name: Test (JUnit)
+        run: $MVN test
+      - name: Reporte de pruebas
+        if: always()
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: backend/target/surefire-reports/TEST-*.xml
+          check_name: Pruebas backend (JUnit)
+      - name: Package (jar)
+        run: $MVN -DskipTests package
+      - name: Guardar artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/smartbody-backend-*.jar
+          if-no-files-found: error
+
+  android:
+    name: Android - Build y Test
+    needs: version
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build + Test (unit tests y APK release)
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testDebugUnitTest assembleRelease \
+            -Psmartbody.apiBaseUrl='${{ inputs.api_base_url || 'http://10.0.2.2:8080/' }}' \
+            -Psmartbody.versionName=${{ needs.version.outputs.version }} \
+            -Psmartbody.versionCode=${{ github.run_number }}
+      - name: Reporte de pruebas
+        if: always()
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: android/app/build/test-results/testDebugUnitTest/TEST-*.xml
+          check_name: Pruebas Android (JUnit)
+      - name: Guardar artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+  publicar:
+    name: Publish - GitHub Packages
+    needs: [version, backend, android]
+    # Solo main (push o ejecucion manual); los pull requests se quedan en Build + Test.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefactos
+      - name: Fijar version
+        working-directory: backend
+        run: $MVN versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
+      # Se publica exactamente el jar y el APK que pasaron las pruebas (no se recompila).
+      - name: Publicar jar del backend
+        working-directory: backend
+        run: |
+          $MVN -s ../devops/maven/settings.xml deploy:deploy-file \
+            -DrepositoryId=github -Durl=$PACKAGES_URL \
+            -DpomFile=pom.xml -Dfile=$(ls ../artefactos/backend-jar/smartbody-backend-*.jar)
+      - name: Publicar APK de Android
+        working-directory: backend
+        run: |
+          $MVN -s ../devops/maven/settings.xml deploy:deploy-file \
+            -DrepositoryId=github -Durl=$PACKAGES_URL \
+            -DgroupId=com.smartbody -DartifactId=smartbody-android -Dversion=$VERSION -Dpackaging=apk \
+            -Dfile=$(ls ../artefactos/android-apk/*.apk)
+      - name: Resumen
+        run: |
+          {
+            echo "## Artefactos publicados en GitHub Packages"
+            echo "- com.smartbody:smartbody-backend:$VERSION (jar)"
+            echo "- com.smartbody:smartbody-android:$VERSION (apk)"
+            echo "- Repositorio: $PACKAGES_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release:
+    name: Release - tag y GitHub Release
+    needs: [version, publicar]
+    if: needs.version.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    # Entorno con aprobacion manual opcional (Settings > Environments > produccion > Required reviewers).
+    environment: produccion
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefactos
+      - name: Etiquetar la version y preparar la siguiente
+        run: |
+          IFS=. read -r MAYOR MENOR PARCHE <<< "$VERSION"
+          SIGUIENTE="$MAYOR.$MENOR.$((PARCHE + 1))-SNAPSHOT"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          (cd backend && $MVN versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false)
+          git commit -am "Release v$VERSION"
+          git tag -a "v$VERSION" -m "Smartbody v$VERSION"
+          (cd backend && $MVN versions:set -DnewVersion=$SIGUIENTE -DgenerateBackupPoms=false)
+          git commit -am "Siguiente version de desarrollo $SIGUIENTE"
+          git push origin HEAD:main "v$VERSION"
+      - name: Crear GitHub Release con los artefactos
+        run: |
+          gh release create "v$VERSION" \
+            artefactos/backend-jar/smartbody-backend-*.jar \
+            artefactos/android-apk/*.apk \
+            --title "Smartbody v$VERSION" --generate-notes
+          echo "## Release v$VERSION creado: listo para la Etapa 6 (Docker/Kubernetes)" >> "$GITHUB_STEP_SUMMARY"

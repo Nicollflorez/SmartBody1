@@ -1,0 +1,52 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: smartbody-backend
+
+  datasource:
+    # MySQL/MariaDB local administrado con XAMPP + phpMyAdmin
+    url: jdbc:mysql://${SMARTBODY_DB_HOST:localhost}:${SMARTBODY_DB_PORT:3306}/${SMARTBODY_DB_NAME:smartbody_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
+    username: ${SMARTBODY_DB_USER:root}
+    password: ${SMARTBODY_DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    # El esquema se crea con los scripts de /database. Hibernate no modifica la base de datos.
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  jackson:
+    default-property-inclusion: non_null
+
+  servlet:
+    multipart:
+      # Foto de perfil. El servicio aplica un limite de 700 KB con un mensaje claro.
+      max-file-size: 1MB
+      max-request-size: 1MB
+
+smartbody:
+  jwt:
+    issuer: smartbody-api
+    expiration-minutes: ${SMARTBODY_JWT_MINUTES:180}
+    # Directorio (fuera del codigo fuente) donde viven las claves RSA.
+    # La clave privada JAMAS se envia al cliente Android.
+    keys-dir: ${SMARTBODY_KEYS_DIR:./keys}
+  # Cuenta de administrador creada al arrancar solo si se definen estas variables de entorno.
+  # La contrasena nunca se escribe en el codigo ni en los scripts SQL.
+  admin:
+    email: ${SMARTBODY_ADMIN_EMAIL:}
+    password: ${SMARTBODY_ADMIN_PASSWORD:}
+    nombre: ${SMARTBODY_ADMIN_NOMBRE:Administrador}
+
+logging:
+  level:
+    root: INFO
+    com.smartbody: INFO
+    org.hibernate.SQL: WARN

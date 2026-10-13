@@ -1,0 +1,38 @@
+# Infraestructura de lanzamiento de referencia: Jenkins + Nexus en contenedores.
+#
+# Pensada para un servidor con 8 GB de RAM o mas (Nexus 3 pide ~2.7 GB de heap por defecto).
+# En el equipo de desarrollo actual (4 GB) Jenkins corre nativo (devops/jenkins/run-jenkins.ps1)
+# y el repositorio de artefactos es GitHub Packages; el pom y el Jenkinsfile son los mismos:
+# para usar Nexus basta cambiar la URL de distributionManagement y la credencial.
+#
+#   docker compose -f devops/docker-compose.yml up -d
+#   Jenkins: http://localhost:8090      Nexus: http://localhost:8081
+#   Repositorios a crear en Nexus: maven-releases y maven-snapshots (hosted, formato maven2).
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: smartbody-jenkins
+    ports:
+      - "8090:8080"
+      - "50000:50000"
+    environment:
+      JAVA_OPTS: "-Xmx768m"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    restart: unless-stopped
+
+  nexus:
+    image: sonatype/nexus3:latest
+    container_name: smartbody-nexus
+    ports:
+      - "8081:8081"
+    environment:
+      INSTALL4J_ADD_VM_PARAMS: "-Xms1g -Xmx1g -XX:MaxDirectMemorySize=1g"
+    volumes:
+      - nexus_data:/nexus-data
+    restart: unless-stopped
+
+volumes:
+  jenkins_home:
+  nexus_data:

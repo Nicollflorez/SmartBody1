@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colores de marca tomados del logo (ver view/theme/Color.kt) -->
+    <color name="smartbody_background">#FF0B0F12</color>
+    <color name="ic_launcher_background">#FF0B0F12</color>
+</resources>
