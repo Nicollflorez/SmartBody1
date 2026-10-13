@@ -120,9 +120,9 @@ los binarios que pasaron las pruebas (no recompila): principio de promocion de a
 
 ## Puesta en marcha
 
-1. Crear el proyecto `SmartBody` en gitlab.com y subir el codigo
-   (`git push gitlab main`). El primer push ya ejecuta el pipeline y publica
-   `1.0.0-SNAPSHOT`. Los runners compartidos requieren validar la cuenta (tarjeta, sin
+1. Proyecto en gitlab.com: `https://gitlab.com/Nicollflorez/smartbody` (publico). Subir el
+   codigo con `git push gitlab main`; el primer push ya ejecuta el pipeline y publica el
+   SNAPSHOT vigente. Los runners compartidos requieren validar la cuenta (tarjeta, sin
    cobro) la primera vez.
 2. (Opcional) *Settings > CI/CD > Variables*: `GITLAB_PUSH_TOKEN` (protegido y enmascarado)
    para que el release haga el commit de version.
