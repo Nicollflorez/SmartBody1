@@ -1,0 +1,229 @@
+{
+  "info": {
+    "name": "Smartbody - pruebas end-to-end de la API",
+    "description": "Recorrido completo de un usuario contra el backend desplegado (Etapa 4): registro, login, perfil, rutina, nutricion, progreso, chatbot y permisos. Se ejecuta con Newman en el pipeline (job k8s:kind) o desde Postman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "email", "value": "" },
+    { "key": "password", "value": "ClaveE2E-2026" },
+    { "key": "token", "value": "" },
+    { "key": "objetivoId", "value": "" },
+    { "key": "rutinaId", "value": "" },
+    { "key": "itemId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 Ping (publico)",
+      "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/ping" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('responde 200', () => pm.response.to.have.status(200));",
+        "pm.test('estado ACTIVO', () => pm.expect(pm.response.json().estado).to.eql('ACTIVO'));"
+      ] } }]
+    },
+    {
+      "name": "02 Ruta protegida sin token -> 401",
+      "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/users/me" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('rechaza sin token', () => pm.response.to.have.status(401));"
+      ] } }]
+    },
+    {
+      "name": "03 Registro (RF01)",
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [
+          "pm.collectionVariables.set('email', 'e2e-' + Date.now() + '@smartbody.com');"
+        ] } },
+        { "listen": "test", "script": { "exec": [
+          "pm.test('crea la cuenta (201)', () => pm.response.to.have.status(201));",
+          "const r = pm.response.json();",
+          "pm.test('devuelve token Bearer', () => { pm.expect(r.tipo).to.eql('Bearer'); pm.expect(r.token).to.be.a('string').and.not.empty; });",
+          "pm.test('perfil incompleto al registrarse', () => pm.expect(r.usuario.perfilCompleto).to.eql(false));",
+          "pm.test('nunca devuelve la contrasena', () => pm.expect(pm.response.text()).to.not.include(pm.collectionVariables.get('password')));",
+          "pm.collectionVariables.set('token', r.token);"
+        ] } }
+      ],
+      "request": {
+        "auth": { "type": "noauth" }, "method": "POST", "url": "{{baseUrl}}/api/auth/register",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"nombre\": \"Prueba E2E\", \"email\": \"{{email}}\", \"password\": \"{{password}}\" }" }
+      }
+    },
+    {
+      "name": "04 Registro duplicado -> 409",
+      "request": {
+        "auth": { "type": "noauth" }, "method": "POST", "url": "{{baseUrl}}/api/auth/register",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"nombre\": \"Prueba E2E\", \"email\": \"{{email}}\", \"password\": \"{{password}}\" }" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('correo repetido -> 409', () => pm.response.to.have.status(409));"
+      ] } }]
+    },
+    {
+      "name": "05 Login con contrasena incorrecta -> 401 (RF02)",
+      "request": {
+        "auth": { "type": "noauth" }, "method": "POST", "url": "{{baseUrl}}/api/auth/login",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"email\": \"{{email}}\", \"password\": \"incorrecta123\" }" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('credenciales invalidas -> 401', () => pm.response.to.have.status(401));"
+      ] } }]
+    },
+    {
+      "name": "06 Login correcto (RF02)",
+      "request": {
+        "auth": { "type": "noauth" }, "method": "POST", "url": "{{baseUrl}}/api/auth/login",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"email\": \"{{email}}\", \"password\": \"{{password}}\" }" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('inicia sesion (200)', () => pm.response.to.have.status(200));",
+        "const r = pm.response.json();",
+        "pm.test('token y expiracion', () => { pm.expect(r.token).to.be.a('string'); pm.expect(r.expiraEnSegundos).to.be.above(0); });",
+        "pm.collectionVariables.set('token', r.token);"
+      ] } }]
+    },
+    {
+      "name": "07 Usuario autenticado",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/users/me" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200 con el token', () => pm.response.to.have.status(200));",
+        "pm.test('es la cuenta registrada', () => pm.expect(pm.response.json().email).to.eql(pm.collectionVariables.get('email')));"
+      ] } }]
+    },
+    {
+      "name": "08 Generar rutina sin perfil -> 400 (RF06)",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/routines/generate" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('exige perfil completo', () => pm.response.to.have.status(400));"
+      ] } }]
+    },
+    {
+      "name": "09 Catalogo de objetivos (RF04)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/objectives" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));",
+        "const objetivos = pm.response.json();",
+        "pm.test('hay objetivos', () => pm.expect(objetivos.length).to.be.at.least(5));",
+        "pm.collectionVariables.set('objetivoId', objetivos[0].id);"
+      ] } }]
+    },
+    {
+      "name": "10 Completar perfil (RF03-RF05)",
+      "request": {
+        "method": "PUT", "url": "{{baseUrl}}/api/users/profile",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"edad\": 30, \"sexo\": \"FEMENINO\", \"pesoKg\": 62, \"alturaCm\": 165, \"nivelExperiencia\": \"INTERMEDIO\", \"minutosPorSesion\": 30, \"diasPorSemana\": 5, \"objetivoId\": {{objetivoId}}, \"restriccionIds\": [] }" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('guarda el perfil (200)', () => pm.response.to.have.status(200));",
+        "const p = pm.response.json();",
+        "pm.test('perfil completo con IMC', () => { pm.expect(p.completo).to.eql(true); pm.expect(p.imc).to.be.above(0); });"
+      ] } }]
+    },
+    {
+      "name": "11 Generar rutina (RF06)",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/routines/generate" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('crea la rutina (201)', () => pm.response.to.have.status(201));",
+        "const r = pm.response.json();",
+        "pm.test('activa y con 5 dias', () => { pm.expect(r.activa).to.eql(true); pm.expect(r.dias.length).to.eql(5); });",
+        "pm.test('cada dia tiene ejercicios', () => r.dias.forEach(d => pm.expect(d.ejercicios.length).to.be.above(0)));",
+        "pm.collectionVariables.set('rutinaId', r.id);",
+        "pm.collectionVariables.set('itemId', r.dias[0].ejercicios[0].id);"
+      ] } }]
+    },
+    {
+      "name": "12 Rutina activa (RF07)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/routines/active" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));",
+        "pm.test('es la rutina recien generada', () => pm.expect(String(pm.response.json().id)).to.eql(String(pm.collectionVariables.get('rutinaId'))));"
+      ] } }]
+    },
+    {
+      "name": "13 Alternativas de un ejercicio (RF09)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/routines/{{rutinaId}}/items/{{itemId}}/alternatives" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200 con lista', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.be.an('array'); });"
+      ] } }]
+    },
+    {
+      "name": "14 Generar plan nutricional (RF06)",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/nutrition/generate" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('crea el plan (201)', () => pm.response.to.have.status(201));",
+        "const n = pm.response.json();",
+        "pm.test('calorias, comidas e hidratacion', () => { pm.expect(n.caloriasObjetivo).to.be.above(1000); pm.expect(n.comidas.length).to.be.above(0); pm.expect(n.hidratacion).to.exist; });"
+      ] } }]
+    },
+    {
+      "name": "15 Plan nutricional activo (RF07)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/nutrition/active" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));"
+      ] } }]
+    },
+    {
+      "name": "16 Registrar medidas (RF10)",
+      "request": {
+        "method": "POST", "url": "{{baseUrl}}/api/progress",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"pesoKg\": 61.5, \"cinturaCm\": 80 }" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('registra (201)', () => pm.response.to.have.status(201));",
+        "pm.test('calcula el IMC', () => pm.expect(pm.response.json().imc).to.be.above(0));"
+      ] } }]
+    },
+    {
+      "name": "17 Historial de progreso (RF10)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/progress" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));",
+        "const p = pm.response.json();",
+        "pm.test('peso actual actualizado', () => { pm.expect(p.pesoActual).to.eql(61.5); pm.expect(p.medidas.length).to.be.at.least(1); });"
+      ] } }]
+    },
+    {
+      "name": "18 Chatbot",
+      "request": {
+        "method": "POST", "url": "{{baseUrl}}/api/chat",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"mensaje\": \"Cuanta agua debo tomar?\" }" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));",
+        "pm.test('responde con texto y sugerencias', () => { const r = pm.response.json(); pm.expect(r.respuesta).to.be.a('string').and.not.empty; pm.expect(r.sugerencias).to.be.an('array'); });"
+      ] } }]
+    },
+    {
+      "name": "19 Resumen de inicio (RF11)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/users/summary" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));"
+      ] } }]
+    },
+    {
+      "name": "20 Panel de administracion sin rol -> 403",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/summary" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('usuario normal no entra al panel', () => pm.response.to.have.status(403));"
+      ] } }]
+    },
+    {
+      "name": "21 Cerrar sesion (RF12)",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/auth/logout" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));"
+      ] } }]
+    }
+  ]
+}

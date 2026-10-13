@@ -232,8 +232,16 @@ k8s:kind:
     - curl -sf http://docker:30080/actuator/health
     - curl -s -o /dev/null -w "%{http_code}\n" http://docker:30080/api/users/me | grep -q 401
     - kubectl -n smartbody get pods -o wide
+    # Etapa 4: pruebas end-to-end de la API (coleccion Postman ejecutada con Newman) sobre el despliegue.
+    - apk add --no-cache nodejs npm >/dev/null && npm install -g --silent newman
+    - newman run tests/e2e/smartbody.postman_collection.json --env-var baseUrl=http://docker:30080
+        --reporters cli,junit --reporter-junit-export e2e-api.xml
   after_script:
     - kind delete cluster --name smartbody || true
+  artifacts:
+    when: always
+    reports:
+      junit: e2e-api.xml
 
 # ---------------------------------------------------------------- publish
 # Sube exactamente el jar y el apk que pasaron las pruebas (no recompila).

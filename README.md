@@ -326,6 +326,16 @@ cd android
 
 18 pruebas de validaciones de formularios, del formato de rutinas y medidas y del saludo del chat.
 
+End-to-end de la API (coleccion Postman ejecutada con Newman contra el backend desplegado;
+el pipeline la corre sobre el cluster de prueba y publica el reporte en la pestana *Tests*):
+
+```bash
+newman run tests/e2e/smartbody.postman_collection.json --env-var baseUrl=http://localhost:8080
+```
+
+21 peticiones que recorren registro, login, perfil, rutina, nutricion, progreso, chatbot y permisos
+([`tests/e2e/`](tests/e2e/)).
+
 ---
 
 ## Integracion y entrega continua (CI/CD)
