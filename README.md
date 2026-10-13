@@ -373,6 +373,7 @@ monitorean el backend con un panel provisionado ([`devops/prometheus/`](devops/p
 
 - [`docs/GESTION_DE_LANZAMIENTO.md`](docs/GESTION_DE_LANZAMIENTO.md) — pipeline de lanzamiento, repositorio de artefactos y release
 - [`docs/DESPLIEGUE_Y_OPERACION.md`](docs/DESPLIEGUE_Y_OPERACION.md) — Docker, Kubernetes, Nginx, Prometheus y Grafana
+- [`docs/PLANIFICACION_TRELLO.md`](docs/PLANIFICACION_TRELLO.md) — listas, etiquetas y tarjetas del tablero de planificacion
 
 - [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) — capas, patron MVP, navegacion y extension a IA
 - [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md) — endpoints, formatos, reglas de generacion y codigos de estado
