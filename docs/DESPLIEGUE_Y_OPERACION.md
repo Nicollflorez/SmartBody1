@@ -140,6 +140,15 @@ serviran para cada microservicio cuando el backend se divida.
 La app Android apunta al nuevo punto de entrada compilando con
 `-Psmartbody.apiBaseUrl=http://<host>/` (sin el puerto 8080).
 
+## Ejecuciones de referencia (13 de octubre de 2026)
+
+| Que demuestra | Enlace |
+|---------------|--------|
+| Pipeline del Merge Request !1 con todas las etapas en verde: imagen Docker, validacion de Nginx y Kubernetes y despliegue real en kind con prueba de humo | https://gitlab.com/Nicollflorez/smartbody/-/pipelines/2944359373 |
+| Job `docker:backend` (Kaniko → Container Registry) | https://gitlab.com/Nicollflorez/smartbody/-/jobs/17153852764 |
+| Job `k8s:kind` (cluster efimero, `kubectl get pods`, `/api/ping` y `/actuator/health` a traves de Nginx) | https://gitlab.com/Nicollflorez/smartbody/-/jobs/17153852767 |
+| Imagenes publicadas | https://gitlab.com/Nicollflorez/smartbody/container_registry |
+
 ## Pendientes conocidos
 
 - TLS: el repositorio deja Nginx en HTTP; el certificado se agrega en el servidor real.
