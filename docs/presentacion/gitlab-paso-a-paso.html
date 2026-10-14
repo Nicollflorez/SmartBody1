@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Smartbody en GitLab: paso a paso</title>
+<style>
+  @page { size: 13.33in 7.5in; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #1f2937; font-family: "Segoe UI", Arial, sans-serif; }
+  .slide { width: 13.33in; height: 7.5in; padding: 0.55in 0.75in 0.5in; page-break-after: always; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  .slide:last-child { page-break-after: auto; }
+  .slide.portada { background: linear-gradient(135deg, #1f2d5a 0%, #e24329 100%); color: #fff; justify-content: center; }
+  .portada h1 { font-size: 46pt; margin: 0 0 0.2in; line-height: 1.1; }
+  .portada p { font-size: 18pt; margin: 0.08in 0; opacity: 0.95; }
+  .portada .pie { position: absolute; bottom: 0.5in; left: 0.75in; font-size: 12pt; opacity: 0.85; }
+  h2 { font-size: 26pt; margin: 0 0 0.18in; color: #1f2d5a; border-bottom: 4px solid #e24329; padding-bottom: 0.08in; }
+  h3 { font-size: 15pt; margin: 0.12in 0 0.06in; color: #e24329; }
+  p, li { font-size: 13.5pt; line-height: 1.38; }
+  ul, ol { margin: 0.05in 0 0.1in 0.25in; padding: 0; }
+  li { margin-bottom: 0.05in; }
+  code, pre { font-family: Consolas, "Courier New", monospace; }
+  code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; font-size: 12pt; }
+  pre { background: #0f172a; color: #e5e7eb; padding: 0.14in 0.18in; border-radius: 8px; font-size: 10.6pt; line-height: 1.35; margin: 0.06in 0; white-space: pre; overflow: hidden; }
+  pre .c { color: #94a3b8; } pre .k { color: #7dd3fc; } pre .s { color: #fde68a; }
+  .dos { display: flex; gap: 0.35in; flex: 1; min-height: 0; }
+  .dos > div { flex: 1; min-width: 0; }
+  .dos > div.ancha { flex: 1.35; }
+  .captura { border: 1px solid #d1d5db; border-radius: 8px; max-width: 100%; max-height: 4.9in; object-fit: contain; box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+  .captura.alta { max-height: 5.6in; }
+  .paso { display: flex; align-items: flex-start; gap: 0.14in; margin-bottom: 0.08in; }
+  .num { flex: none; width: 0.38in; height: 0.38in; border-radius: 50%; background: #e24329; color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13pt; }
+  .nota { background: #fff7ed; border-left: 5px solid #f59e0b; padding: 0.08in 0.14in; font-size: 12pt; margin-top: 0.08in; border-radius: 4px; }
+  .ok { background: #ecfdf5; border-left: 5px solid #10b981; padding: 0.08in 0.14in; font-size: 12pt; margin-top: 0.08in; border-radius: 4px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12pt; }
+  th, td { border: 1px solid #d1d5db; padding: 0.05in 0.1in; text-align: left; vertical-align: top; }
+  th { background: #1f2d5a; color: #fff; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .pie-pagina { position: absolute; bottom: 0.25in; right: 0.75in; font-size: 9.5pt; color: #9ca3af; }
+  .etapas { display: flex; gap: 0.12in; margin-top: 0.1in; }
+  .etapa { flex: 1; background: #f3f4f6; border-radius: 8px; padding: 0.1in; text-align: center; font-size: 11.5pt; border-top: 5px solid #1f2d5a; }
+  .etapa b { display: block; color: #e24329; font-size: 13pt; }
+  .flecha { align-self: center; font-size: 20pt; color: #9ca3af; }
+</style>
+</head>
+<body>
+
+<!-- 1 -->
+<section class="slide portada">
+  <h1>Smartbody en GitLab<br>paso a paso</h1>
+  <p>Etapa 5 · Lanzamiento con GitLab CI/CD (y lo que vino después: Docker, Kubernetes, Nginx, Prometheus/Grafana y microservicios)</p>
+  <p>Desde iniciar sesión con la cuenta de GitHub hasta publicar una versión con un clic de aprobación.</p>
+  <div class="pie">Proyecto académico · Ingeniería de Sistemas · Nicoll Flórez · octubre de 2026</div>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <h2>Qué vamos a recorrer</h2>
+  <div class="dos">
+    <div>
+      <ol>
+        <li>Crear la cuenta e iniciar sesión en GitLab con GitHub</li>
+        <li>Crear el proyecto y subir el código desde el PC</li>
+        <li>Activar los runners (quién ejecuta el pipeline)</li>
+        <li>El archivo <code>.gitlab-ci.yml</code>: cómo se define un pipeline</li>
+        <li>Primera ejecución: etapas, jobs, pestaña <i>Tests</i></li>
+        <li>Repositorio de artefactos: Package Registry</li>
+        <li>Lanzar una versión: inputs, aprobación manual, tag y Release</li>
+        <li>Variables y tokens: dónde viven los secretos</li>
+        <li>Imágenes Docker: Container Registry con Kaniko</li>
+        <li>Trabajar con ramas y Merge Requests</li>
+        <li>Despliegue de prueba en Kubernetes (kind) y pruebas end-to-end</li>
+        <li>Errores reales que tuvimos y cómo se resolvieron</li>
+        <li>Mantenimiento: reintentos, <code>ci.skip</code>, limpieza</li>
+      </ol>
+    </div>
+    <div>
+      <div class="etapas" style="flex-direction:column">
+        <div class="etapa"><b>Build</b>compilar backend, Android y servicios</div>
+        <div class="etapa"><b>Test</b>JUnit: 85 + 22 + 88 pruebas</div>
+        <div class="etapa"><b>Package</b>jar + apk</div>
+        <div class="etapa"><b>Docker</b>5 imágenes con Kaniko</div>
+        <div class="etapa"><b>Deploy</b>kind + 36 aserciones e2e</div>
+        <div class="etapa"><b>Publish / Release</b>Package Registry, tag, Release</div>
+      </div>
+    </div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <h2>1. Iniciar sesión en GitLab con la cuenta de GitHub</h2>
+  <div class="paso"><div class="num">1</div><p>Entra en <b>https://gitlab.com/users/sign_in</b> y pulsa <b>Sign in with GitHub</b> (o <i>Register</i> &rarr; <i>GitHub</i> si es la primera vez).</p></div>
+  <div class="paso"><div class="num">2</div><p>GitHub pide autorizar a GitLab: <b>Authorize GitLab</b>. GitLab crea la cuenta con el mismo usuario (<code>Nicollflorez</code>).</p></div>
+  <div class="paso"><div class="num">3</div><p>Completa el formulario de bienvenida (rol, uso) y confirma el correo si lo pide.</p></div>
+  <div class="paso"><div class="num">4</div><p><b>Verificación de la cuenta</b>: para usar los runners gratuitos de gitlab.com hay que validar la identidad (teléfono o tarjeta, sin cobro). Sin esto, el primer pipeline queda en <i>failed</i> sin jobs.</p></div>
+  <div class="nota">Lo vivimos: los dos primeros pipelines fallaron con "0 jobs" hasta validar la cuenta. Después, un pipeline nuevo ya creó sus 7 jobs.</div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <h2>2. Crear el proyecto</h2>
+  <div class="dos">
+    <div>
+      <div class="paso"><div class="num">1</div><p><b>+</b> &rarr; <b>New project</b> &rarr; <b>Create blank project</b>.</p></div>
+      <div class="paso"><div class="num">2</div><p><b>Project name:</b> <code>SmartBody</code>. <b>Project URL:</b> elige tu <b>usuario</b>, no un grupo privado: un proyecto no puede ser más visible que su grupo.</p></div>
+      <div class="paso"><div class="num">3</div><p><b>Visibility:</b> <i>Public</i> (runners y registros sin límite; el profesor puede ver todo).</p></div>
+      <div class="paso"><div class="num">4</div><p><b>Desmarca</b> "Initialize repository with a README": vamos a subir un repositorio que ya existe.</p></div>
+      <div class="paso"><div class="num">5</div><p><b>Create project</b>. Resultado: <code>https://gitlab.com/Nicollflorez/smartbody</code></p></div>
+      <div class="nota">Si aparece "Path has already been taken" es que ya existe un proyecto con ese nombre en ese espacio: cámbialo de espacio (usuario) o de nombre.</div>
+    </div>
+    <div class="ancha"><img class="captura" src="img/nuevo-proyecto.png" alt="Formulario de nuevo proyecto"></div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <h2>3. Subir el código desde el PC</h2>
+  <div class="dos">
+    <div>
+      <p>El proyecto ya estaba en Git (y en GitHub). Solo se agrega GitLab como segundo remoto:</p>
+<pre><span class="c"># en la carpeta del proyecto</span>
+git remote add gitlab https://gitlab.com/Nicollflorez/smartbody.git
+git push -u gitlab main</pre>
+      <p>Al hacer <code>push</code> por HTTPS, el <b>Git Credential Manager</b> de Windows abre una ventana para iniciar sesión en GitLab (con GitHub). Se hace una sola vez.</p>
+      <div class="nota">Si dejaste marcado "README", el push se rechaza (<i>non-fast-forward</i>). Solución sin forzar: <code>git merge gitlab/main --allow-unrelated-histories</code> y volver a hacer push.</div>
+    </div>
+    <div>
+      <h3>Detalles que importan en Windows</h3>
+      <ul>
+        <li><code>.gitattributes</code> fuerza <b>LF</b> en <code>mvnw</code>, <code>gradlew</code> y <code>*.sh</code>: los runners son Linux.</li>
+        <li>El bit de ejecución no existe en Windows: <code>git update-index --chmod=+x backend/mvnw android/gradlew</code>. Sin esto el job falla con <i>Permission denied</i>.</li>
+        <li>Nunca se suben claves ni contraseñas: <code>backend/keys/</code>, <code>*.pem</code>, <code>.env</code> están en <code>.gitignore</code>.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <h2>4. Runners: quién ejecuta el pipeline</h2>
+  <div class="dos">
+    <div>
+      <p>Un <b>runner</b> es la máquina que corre cada job. gitlab.com ofrece <b>instance runners</b> compartidos (Linux, 2 vCPU) gratis para proyectos públicos.</p>
+      <div class="paso"><div class="num">1</div><p><b>Settings &rarr; CI/CD &rarr; Runners</b>.</p></div>
+      <div class="paso"><div class="num">2</div><p>Interruptor <b>"Enable instance runners for this project"</b> activado; debajo se listan los runners <i>Online</i>.</p></div>
+      <div class="paso"><div class="num">3</div><p>Un job sin etiqueta (<code>tags</code>) cae en el runner Linux pequeño; algunos usan Docker-in-Docker (<code>services: docker:dind</code>) para crear contenedores dentro del job.</p></div>
+      <div class="nota">La primera vez el job puede quedar <i>pending</i> 10-15 min: es cola de runners gratuitos, no un error (ver captura "Este trabajo aún no ha empezado").</div>
+    </div>
+    <div class="ancha"><img class="captura" src="img/runners.png" alt="Runners de instancia activos"></div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <h2>5. El pipeline se define en <code>.gitlab-ci.yml</code> (raíz del repo)</h2>
+  <div class="dos">
+    <div class="ancha">
+<pre><span class="c"># Opciones del formulario "Run pipeline"</span>
+<span class="k">spec</span>:
+  <span class="k">inputs</span>:
+    <span class="k">publicar_release</span>: { type: boolean, default: false }
+    <span class="k">version_release</span>:  { type: string,  default: <span class="s">""</span> }
+---
+<span class="k">stages</span>: [version, build, test, package, docker, deploy, publish, release]
+
+<span class="k">variables</span>:
+  PUBLICAR_RELEASE: <span class="s">"$[[ inputs.publicar_release ]]"</span>
+  MVN: <span class="s">"./mvnw -B -ntp"</span>
+
+<span class="k">workflow</span>:            <span class="c"># cuándo se crea un pipeline</span>
+  <span class="k">rules</span>:
+    - if: $CI_PIPELINE_SOURCE == <span class="s">"merge_request_event"</span>
+    - if: $CI_COMMIT_BRANCH == <span class="s">"main"</span>
+
+<span class="k">build:backend</span>:      <span class="c"># un job</span>
+  <span class="k">stage</span>: build
+  <span class="k">image</span>: eclipse-temurin:17-jdk
+  <span class="k">needs</span>: [version]
+  <span class="k">script</span>:
+    - cd backend
+    - $MVN -DskipTests compile</pre>
+    </div>
+    <div>
+      <h3>Conceptos</h3>
+      <ul>
+        <li><b>stage</b>: fase ordenada. <b>job</b>: unidad que corre en un runner.</li>
+        <li><b>image</b>: contenedor Docker donde corre el job (JDK, Android SDK, Kaniko, kubectl…).</li>
+        <li><b>script</b>: comandos; si uno falla, el job falla.</li>
+        <li><b>needs</b>: dependencias reales (DAG): el job arranca en cuanto sus <i>needs</i> terminan, sin esperar toda la fase.</li>
+        <li><b>artifacts</b>: archivos que pasan a jobs siguientes (jar, apk) y <b>reports: junit</b> alimenta la pestaña <i>Tests</i>.</li>
+        <li><b>cache</b>: <code>.m2</code> y <code>.gradle</code> para no descargar dependencias cada vez.</li>
+        <li><b>rules / when: manual</b>: condiciones y botón de aprobación.</li>
+        <li><b>spec:inputs</b>: campos del formulario <i>Run pipeline</i> (la interfaz nueva ya no muestra variables).</li>
+      </ul>
+    </div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <h2>6. Las fases del pipeline de Smartbody</h2>
+  <table>
+    <tr><th style="width:1.4in">Stage</th><th>Jobs</th><th>Qué hace</th></tr>
+    <tr><td><b>version</b></td><td><code>version</code></td><td>Lee la versión del <code>pom.xml</code> (<code>1.0.x-SNAPSHOT</code>); si es release, quita <code>-SNAPSHOT</code> y comprueba que el tag no exista. La publica como <i>dotenv</i> para todos los jobs.</td></tr>
+    <tr><td><b>build</b></td><td><code>build:backend</code>, <code>build:android</code>, <code>build:servicios</code></td><td>Compila con Maven (backend y 4 microservicios) y Gradle (APK release). En paralelo.</td></tr>
+    <tr><td><b>test</b></td><td><code>test:backend</code>, <code>test:android</code>, <code>test:servicios</code></td><td>JUnit: 85 + 22 + 88 pruebas. Reportes a la pestaña <i>Tests</i>. Si falla, no se publica nada.</td></tr>
+    <tr><td><b>package</b></td><td><code>package:backend</code>, <code>package:servicios</code></td><td>Empaqueta los jars (artefactos del pipeline).</td></tr>
+    <tr><td><b>docker</b></td><td><code>docker:backend</code>, <code>docker:servicios</code> (matriz ×4)</td><td>Kaniko construye las imágenes <b>a partir del jar ya probado</b> y las sube al Container Registry.</td></tr>
+    <tr><td><b>deploy</b></td><td><code>nginx:validate</code>, <code>k8s:validate</code>, <code>k8s:kind</code>, <code>k8s:kind:microservicios</code></td><td>Valida Nginx y manifiestos; crea un clúster <b>kind</b> dentro del runner, despliega y ejecuta 21 peticiones end-to-end (Newman).</td></tr>
+    <tr><td><b>publish</b></td><td><code>publish:snapshot</code> / <code>publish:release</code> (manual)</td><td>Sube jar y apk al <b>Package Registry</b>. En release espera el botón ▶.</td></tr>
+    <tr><td><b>release</b></td><td><code>release</code></td><td>Commit "Release vX", tag, bump a la siguiente versión y <b>Release</b> de GitLab con enlaces.</td></tr>
+  </table>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <h2>7. Primera ejecución y cómo leerla</h2>
+  <div class="dos">
+    <div>
+      <div class="paso"><div class="num">1</div><p>Cada <code>git push</code> a <code>main</code> crea un pipeline: <b>Build &rarr; Pipelines</b>.</p></div>
+      <div class="paso"><div class="num">2</div><p>Entra al pipeline: el grafo muestra las fases y el estado de cada job (azul: corriendo, verde: ok, rojo: fallo, gris: en espera).</p></div>
+      <div class="paso"><div class="num">3</div><p>Clic en un job &rarr; log completo. Al final: <i>Job succeeded</i> o la causa del fallo.</p></div>
+      <div class="paso"><div class="num">4</div><p>Pestaña <b>Tests</b>: suites JUnit con pasadas/fallidas por job.</p></div>
+      <div class="paso"><div class="num">5</div><p>Botón <b>Download</b> (artefactos) y <b>Retry</b> por job.</p></div>
+      <div class="ok">Pipeline de referencia: #2946610215 — 22 jobs, 5 suites de pruebas, 5 imágenes publicadas.</div>
+    </div>
+    <div class="ancha"><img class="captura" src="img/pipeline-en-ejecucion.png" alt="Pipeline en ejecución"></div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <h2>8. Repositorio de artefactos: Package Registry</h2>
+  <div class="dos">
+    <div class="ancha">
+      <p>Cumple el rol de Nexus/Artifactory sin instalar nada: un repositorio Maven propio del proyecto. Cada compilación que pasa las pruebas deja el jar y el apk <b>versionados</b>.</p>
+<pre><span class="c"># job publish (.gitlab-ci.yml)</span>
+$MVN -s ../devops/maven/settings.xml deploy:deploy-file
+  -DrepositoryId=gitlab
+  -Durl=$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/maven
+  -DpomFile=pom.xml -Dfile=target/smartbody-backend-$VERSION.jar</pre>
+<pre><span class="c"># devops/maven/settings.xml: autenticación con el token del job</span>
+&lt;server&gt;&lt;id&gt;gitlab&lt;/id&gt;
+  &lt;configuration&gt;&lt;httpHeaders&gt;&lt;property&gt;
+    &lt;name&gt;Job-Token&lt;/name&gt;&lt;value&gt;${env.CI_JOB_TOKEN}&lt;/value&gt;
+  &lt;/property&gt;&lt;/httpHeaders&gt;&lt;/configuration&gt;
+&lt;/server&gt;</pre>
+    </div>
+    <div>
+      <h3>Dónde verlo</h3>
+      <p><b>Deploy &rarr; Package Registry</b>: <code>com/smartbody/smartbody-backend</code> y <code>smartbody-android</code>, versiones <code>1.0.x-SNAPSHOT</code> (desarrollo, se sobreescriben) y <code>1.0.1 … 1.0.4</code> (oficiales).</p>
+      <h3>Claves</h3>
+      <ul>
+        <li><code>CI_JOB_TOKEN</code> lo crea GitLab para cada job: no hay que guardar contraseñas.</li>
+        <li>Se publica <b>el mismo jar que pasó las pruebas</b> (artefacto), nunca se recompila: promoción de artefactos.</li>
+        <li>La versión vive en un solo sitio: <code>backend/pom.xml</code>; el pipeline la propaga al APK.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <h2>9. Lanzar una versión oficial (Run pipeline + aprobación)</h2>
+  <div class="dos">
+    <div>
+      <div class="paso"><div class="num">1</div><p><b>Build &rarr; Pipelines &rarr; New pipeline</b>, rama <code>main</code>.</p></div>
+      <div class="paso"><div class="num">2</div><p>En <b>Inputs</b>: <code>publicar_release</code> = <b>true</b>; <code>version_release</code> vacía (usa la del pom sin <code>-SNAPSHOT</code>) o una concreta; <code>api_base_url</code> = URL real del servidor para el APK.</p></div>
+      <div class="paso"><div class="num">3</div><p><b>New pipeline</b>. Corre build, test, package, docker, deploy… y se <b>detiene en <code>publish:release</code></b> con un botón ▶: esa es la aprobación del lanzamiento.</p></div>
+      <div class="paso"><div class="num">4</div><p>Al pulsar ▶: publica jar y apk oficiales; el job <code>release</code> crea el commit <i>Release vX.Y.Z</i>, el tag, el commit <i>X.Y.Z+1-SNAPSHOT</i> y el Release en <b>Deploy &rarr; Releases</b>.</p></div>
+    </div>
+    <div class="ancha"><img class="captura" src="img/run-pipeline-inputs.png" alt="Formulario Run pipeline con inputs"></div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <h2>10. Variables de CI/CD: dónde viven los secretos</h2>
+  <div class="dos">
+    <div>
+      <div class="paso"><div class="num">1</div><p><b>Settings &rarr; CI/CD &rarr; Variables &rarr; Add variable</b>.</p></div>
+      <div class="paso"><div class="num">2</div><p><b>Key</b> <code>GITLAB_PUSH_TOKEN</code>, <b>Value</b> el token, <b>Masked</b> (nunca aparece en logs), <i>Protect</i> desmarcado, <i>Environments: All</i>.</p></div>
+      <div class="paso"><div class="num">3</div><p>En el job se usa como variable de entorno: <code>$GITLAB_PUSH_TOKEN</code>. Si no existe, el job <code>release</code> salta el commit de versión (lo avisa en el log).</p></div>
+      <h3>Variables que GitLab ya da</h3>
+      <ul>
+        <li><code>CI_JOB_TOKEN</code>: Package/Container Registry.</li>
+        <li><code>CI_REGISTRY</code>, <code>CI_REGISTRY_USER</code>, <code>CI_REGISTRY_PASSWORD</code>, <code>CI_REGISTRY_IMAGE</code>: Kaniko.</li>
+        <li><code>CI_COMMIT_BRANCH</code>, <code>CI_COMMIT_SHA</code>, <code>CI_PIPELINE_IID</code>, <code>CI_PROJECT_ID</code>, <code>CI_API_V4_URL</code>.</li>
+      </ul>
+      <div class="nota">Un valor pegado en un chat, un log o un commit ya no es secreto: revócalo y crea otro.</div>
+    </div>
+    <div class="ancha"><img class="captura" src="img/variables.png" alt="Variables de CI/CD"></div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <h2>11. Tokens de acceso al proyecto</h2>
+  <div class="dos">
+    <div>
+      <p>Un <b>project access token</b> es una "cuenta de servicio" del proyecto. Se crea en <b>Settings &rarr; Access tokens &rarr; Add new token</b>.</p>
+      <table>
+        <tr><th>Para qué</th><th>Rol</th><th>Scope</th></tr>
+        <tr><td>Que el job <code>release</code> haga commit y push a <code>main</code></td><td>Maintainer</td><td><code>write_repository</code></td></tr>
+        <tr><td>Borrar pipelines, crear Releases por API</td><td>Maintainer</td><td><code>api</code></td></tr>
+        <tr><td>Solo leer (consultas, paneles)</td><td>Reporter</td><td><code>read_api</code></td></tr>
+      </table>
+      <ul>
+        <li>El valor (<code>glpat-…</code>) se muestra <b>una sola vez</b>: cópialo al crearlo.</li>
+        <li>Guárdalo como variable <b>Masked</b> de CI/CD o úsalo desde tu terminal; nunca en el código.</li>
+        <li>Ponle caducidad corta y revócalo cuando termine su uso.</li>
+      </ul>
+    </div>
+    <div class="ancha"><img class="captura" src="img/access-tokens.png" alt="Tokens de acceso al proyecto"></div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <h2>12. Imágenes Docker: Container Registry con Kaniko</h2>
+  <div class="dos">
+    <div class="ancha">
+<pre><span class="k">docker:servicios</span>:
+  <span class="k">stage</span>: docker
+  <span class="k">image</span>: { name: gcr.io/kaniko-project/executor:v1.23.2-debug, entrypoint: [<span class="s">""</span>] }
+  <span class="k">needs</span>: [version, package:servicios]
+  <span class="k">retry</span>: 2
+  <span class="k">parallel</span>:
+    <span class="k">matrix</span>:
+      - SERVICIO: [auth, planes, progreso, admin]
+  <span class="k">script</span>:
+    - echo <span class="s">"{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(printf %s:%s $CI_REGISTRY_USER $CI_REGISTRY_PASSWORD | base64)\"}}}"</span> &gt; /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR/services
+        --dockerfile $CI_PROJECT_DIR/services/Dockerfile
+        --build-arg SERVICIO=$SERVICIO --build-arg VERSION=$VERSION
+        --destination $CI_REGISTRY_IMAGE/$SERVICIO:$VERSION</pre>
+    </div>
+    <div>
+      <ul>
+        <li><b>Kaniko</b> construye imágenes sin demonio Docker (los runners compartidos no lo permiten directamente).</li>
+        <li><b>parallel: matrix</b> crea 4 jobs a la vez, uno por servicio.</li>
+        <li><b>retry: 2</b> repite el job si falla por algo transitorio (red, registro).</li>
+        <li>Las imágenes quedan en <b>Deploy &rarr; Container Registry</b>: <code>backend</code>, <code>auth</code>, <code>planes</code>, <code>progreso</code>, <code>admin</code>, con tags <code>1.0.x-SNAPSHOT</code>, <code>1.0.4</code> y <code>latest</code> (solo desde <code>main</code>).</li>
+        <li>Se construyen <b>desde el jar probado</b> (artefacto), no desde el código.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <h2>13. Ramas y Merge Requests</h2>
+  <div class="dos">
+    <div>
+      <p>Los cambios grandes (Etapas 6-8, pruebas e2e, microservicios) se hicieron en ramas para no tocar <code>main</code> hasta tener el pipeline en verde.</p>
+<pre>git checkout -b etapa-6-7-8
+<span class="c"># ... cambios y commits ...</span>
+git push -u gitlab etapa-6-7-8 \
+  -o merge_request.create \
+  -o merge_request.target=main \
+  -o merge_request.title=<span class="s">"Etapas 6 y 7"</span></pre>
+      <ul>
+        <li>Las <b>push options</b> crean el Merge Request desde la terminal.</li>
+        <li>El MR tiene su propio pipeline (<code>merge_request_event</code>): valida antes de integrar.</li>
+        <li>Al estar en verde: <b>Merge</b> (o <code>git merge --ff-only</code> y push a <code>main</code>).</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Lo que hicimos</h3>
+      <table>
+        <tr><th>MR</th><th>Contenido</th><th>Resultado</th></tr>
+        <tr><td>!1</td><td>Docker, Kubernetes, Nginx, Prometheus/Grafana</td><td>3 iteraciones (YAML, kind con dind) &rarr; verde</td></tr>
+        <tr><td>!2</td><td>Pruebas end-to-end de la API (Postman/Newman)</td><td>verde a la primera</td></tr>
+        <tr><td>!3</td><td>4 microservicios + gateway</td><td>3 iteraciones (Kaniko transitorio, CPU de MySQL) &rarr; verde</td></tr>
+      </table>
+      <div class="ok">Regla: nada entra a <code>main</code> con el pipeline en rojo.</div>
+    </div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 16 -->
+<section class="slide">
+  <h2>14. Despliegue de prueba en Kubernetes dentro del pipeline</h2>
+  <div class="dos">
+    <div class="ancha">
+<pre><span class="k">k8s:kind</span>:
+  <span class="k">image</span>: docker:27
+  <span class="k">services</span>: [docker:27-dind]          <span class="c"># Docker-in-Docker</span>
+  <span class="k">script</span>:
+    - kind create cluster --name smartbody --config k8s/ci/kind.yaml
+    - kubectl config set-cluster kind-smartbody --server=https://docker:$PUERTO --insecure-skip-tls-verify=true
+    - BACKEND_IMAGE=$CI_REGISTRY_IMAGE/backend:$VERSION sh k8s/desplegar.sh
+    - curl -sf http://docker:30080/api/ping
+    - newman run tests/e2e/smartbody.postman_collection.json
+        --env-var baseUrl=http://docker:30080 --reporters cli,junit
+  <span class="k">after_script</span>:                           <span class="c"># diagnóstico aunque falle</span>
+    - kubectl -n smartbody get pods -o wide
+    - kubectl -n smartbody get events | tail -25
+    - kind delete cluster --name smartbody</pre>
+    </div>
+    <div>
+      <ul>
+        <li><b>kind</b> crea un clúster Kubernetes real dentro del runner en ~2 min.</li>
+        <li>Se despliegan MySQL, backend (o los 4 servicios), Nginx, Prometheus y Grafana con los manifiestos de <code>k8s/</code>.</li>
+        <li><b>Newman</b> ejecuta la colección Postman: 21 peticiones, 36 aserciones, reporte en <i>Tests</i>.</li>
+        <li>Mismo criterio para monolito y microservicios: <b>la misma colección debe pasar en ambos</b>.</li>
+        <li>El clúster se destruye al terminar: cada ejecución parte de cero.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 17 -->
+<section class="slide">
+  <h2>15. Errores reales y cómo se diagnosticaron</h2>
+  <div class="dos">
+    <div class="ancha">
+      <table>
+        <tr><th>Síntoma</th><th>Causa</th><th>Solución</th></tr>
+        <tr><td>Pipeline <i>failed</i> con 0 jobs</td><td>Cuenta sin validar</td><td>Validar la cuenta; relanzar</td></tr>
+        <tr><td>"yaml invalid: script should be a string"</td><td>Una línea con <code>: </code> (dos puntos + espacio) se leía como mapa</td><td>Entrecomillar la línea</td></tr>
+        <tr><td><i>Permission denied</i> en <code>mvnw</code></td><td>Sin bit de ejecución desde Windows</td><td><code>git update-index --chmod=+x</code></td></tr>
+        <tr><td>Job <code>release</code> falla sin motivo claro</td><td>Sintaxis de bash (<code>&lt;&lt;&lt;</code>) en imagen Alpine (<code>sh</code>)</td><td>Sintaxis POSIX</td></tr>
+        <tr><td>Etiqueta <code>v1.0.2</code> ya existe</td><td>Se relanzó sin cambiar versión</td><td>Comprobación al inicio del job <code>version</code></td></tr>
+        <tr><td><code>kind</code>: "timed out waiting for control plane"</td><td>API server en localhost del dind</td><td><code>apiServerAddress: 0.0.0.0</code>, sin <code>--wait</code></td></tr>
+        <tr><td>MySQL <code>Pending</code> 5 min</td><td>Suma de <i>requests</i> de CPU &gt; 2 vCPU</td><td>Bajar <i>requests</i> a 50-100m</td></tr>
+        <tr><td>Release: "Links have duplicate…"</td><td>Dos enlaces con la misma URL</td><td>URLs únicas por imagen</td></tr>
+      </table>
+    </div>
+    <div><img class="captura" src="img/yaml-invalido.png" alt="Error de YAML inválido"><p style="font-size:11pt;color:#6b7280;margin-top:0.05in">El mensaje de error del pipeline dice exactamente qué job y qué clave están mal.</p></div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 18 -->
+<section class="slide">
+  <h2>16. Mantenimiento diario del pipeline</h2>
+  <div class="dos">
+    <div>
+      <h3>Evitar ejecuciones inútiles</h3>
+      <p>Un cambio solo de documentación no necesita 25 minutos de pipeline:</p>
+<pre>git push -o ci.skip gitlab main</pre>
+      <p>GitLab registra un pipeline <i>Skipped</i> (gris): no es un error.</p>
+      <h3>Reintentar</h3>
+      <ul>
+        <li>Botón <b>Retry</b> en el job (misma configuración).</li>
+        <li><code>retry: 2</code> en jobs con fallos transitorios (Kaniko).</li>
+        <li>Un pipeline nuevo si cambió <code>.gitlab-ci.yml</code>: el retry usa la versión vieja.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Limpiar el historial</h3>
+      <ul>
+        <li>Abrir el pipeline &rarr; icono de <b>papelera</b> &rarr; <i>Delete pipeline</i>.</li>
+        <li>Por API con un token <code>api</code>: <code>devops/gitlab/limpiar-pipelines.sh</code> borra <i>failed/skipped/canceled</i> y conserva los verdes.</li>
+      </ul>
+      <h3>Leer un fallo rápido</h3>
+      <ol>
+        <li>Pipeline rojo &rarr; job rojo &rarr; final del log.</li>
+        <li>Buscar <i>ERROR</i>, <i>Caused by</i>, <i>exit code</i>.</li>
+        <li>En kind: el <code>after_script</code> ya imprime pods, eventos y logs.</li>
+      </ol>
+      <div class="ok">Hoy: 11 pipelines, todos en verde.</div>
+    </div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 19 -->
+<section class="slide">
+  <h2>17. Resultado: del push al lanzamiento</h2>
+  <div class="etapas">
+    <div class="etapa"><b>git push</b>GitHub + GitLab</div><div class="flecha">&rarr;</div>
+    <div class="etapa"><b>Build + Test</b>195 pruebas unitarias</div><div class="flecha">&rarr;</div>
+    <div class="etapa"><b>Imágenes</b>5 en Container Registry</div><div class="flecha">&rarr;</div>
+    <div class="etapa"><b>kind</b>2 despliegues, 72 aserciones e2e</div><div class="flecha">&rarr;</div>
+    <div class="etapa"><b>Aprobación ▶</b>publish:release</div><div class="flecha">&rarr;</div>
+    <div class="etapa"><b>Release vX.Y.Z</b>jar, apk, imágenes</div>
+  </div>
+  <div class="dos" style="margin-top:0.2in">
+    <div>
+      <h3>Entregables en GitLab</h3>
+      <ul>
+        <li>Proyecto público: <b>gitlab.com/Nicollflorez/smartbody</b></li>
+        <li>Pipeline de referencia: <b>#2946610215</b> (22 jobs en verde)</li>
+        <li>Releases: v1.0.1, v1.0.2, v1.0.3 (monolito) y v1.0.4 (con microservicios)</li>
+        <li>Package Registry: <code>smartbody-backend</code>, <code>smartbody-android</code></li>
+        <li>Container Registry: <code>backend</code>, <code>auth</code>, <code>planes</code>, <code>progreso</code>, <code>admin</code></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Documentación en el repositorio</h3>
+      <ul>
+        <li><code>docs/GESTION_DE_LANZAMIENTO.md</code> — Etapa 5</li>
+        <li><code>docs/DESPLIEGUE_Y_OPERACION.md</code> — Etapas 6, 7 y 8</li>
+        <li><code>docs/ARQUITECTURA_MICROSERVICIOS.md</code></li>
+        <li><code>docs/PLANIFICACION_TRELLO.md</code> — Etapa 1</li>
+        <li><code>tests/e2e/</code> — colección Postman</li>
+        <li><code>.gitlab-ci.yml</code>, <code>Jenkinsfile</code>, <code>.github/workflows/</code></li>
+      </ul>
+    </div>
+  </div>
+  <div class="pie-pagina">Smartbody · GitLab paso a paso</div>
+</section>
+
+<!-- 20 -->
+<section class="slide portada">
+  <h1>Gracias</h1>
+  <p>Smartbody · ciclo de vida del software con herramientas open source</p>
+  <p>GitLab CI/CD · Docker · Kubernetes · Nginx · Prometheus · Grafana · Postman/Newman · Kaniko · kind</p>
+  <div class="pie">Repositorio: gitlab.com/Nicollflorez/smartbody · github.com/Nicollflorez/SmartBody1</div>
+</section>
+
+</body>
+</html>
