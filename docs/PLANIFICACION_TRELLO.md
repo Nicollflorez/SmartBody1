@@ -65,6 +65,11 @@ el enlace al Merge Request o pipeline de GitLab que la cerro.
 | Etapa 6: manifiestos Kubernetes y despliegue en kind | DevOps | MR !1, job `k8s:kind` |
 | Etapa 7: Nginx como proxy inverso | DevOps | MR !1 |
 | Etapa 8: Prometheus + Grafana | DevOps | MR !1 |
+| Microservicio `auth` (registro, login, JWT, perfil, foto) | Backend, DevOps | MR !3 |
+| Microservicio `planes` (catalogo, rutinas, nutricion, motores de reglas) | Backend, DevOps | MR !3 |
+| Microservicio `progreso` (medidas, evaluador, chatbot) | Backend, DevOps | MR !3 |
+| Microservicio `admin` (reportes, estado de cuentas, planes de otros usuarios) | Backend, DevOps | MR !3 |
+| API gateway en Nginx para los 4 servicios | DevOps | MR !3 |
 
 ### Por hacer — siguientes iteraciones
 
@@ -74,11 +79,7 @@ el enlace al Merge Request o pipeline de GitLab que la cerro.
 | Firmar el APK de release con un keystore en variables protegidas | DevOps, Android | keystore, `signingConfig`, variable enmascarada |
 | TLS en Nginx (certificado real) | DevOps | `listen 443 ssl`, redireccion 80 → 443, app con `https://` |
 | Alertmanager con notificaciones | DevOps | correo o Slack para las 4 alertas |
-| Microservicio `auth` (registro, login, JWT, perfil, foto) | Backend, DevOps | modulo, esquema propio, imagen, manifiestos, pruebas |
-| Microservicio `planes` (catalogo, rutinas, nutricion, motores de reglas) | Backend, DevOps | idem |
-| Microservicio `progreso` (medidas, evaluador, chatbot) | Backend, DevOps | idem |
-| Microservicio `admin` (reportes, estado de cuentas, planes de otros usuarios) | Backend, DevOps | idem |
-| API gateway en Nginx para los 4 servicios | DevOps | rutas por prefijo, clave publica compartida |
+| Revocacion de tokens entre servicios (cuentas desactivadas) | Backend | lista de revocacion compartida o tokens mas cortos con refresco |
 | Pruebas instrumentadas Android (Espresso) en el pipeline | Android, DevOps | emulador headless en el runner |
 | Notificaciones push (RF11 completo) | Android, Backend, Could | FCM |
 

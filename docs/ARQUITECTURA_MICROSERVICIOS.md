@@ -86,3 +86,38 @@ servicios y el endpoint `/api/ping`.
   comportarse igual que el monolito.
 - Prometheus raspa `/actuator/prometheus` de los cuatro servicios; el panel de Grafana agrupa
   por `application`.
+
+## Puesta en marcha
+
+| Escenario | Comando |
+|-----------|---------|
+| Servidor con Docker | `cp .env.example .env` y `docker compose -f docker-compose.microservicios.yml up -d` → API en `http://<host>/`, Grafana en `:3000` |
+| Cluster Kubernetes | `VERSION=1.0.4-SNAPSHOT k8s/desplegar-microservicios.sh` → API en `:30080`, Grafana en `:30300` |
+| Desarrollo local (sin Docker) | Cargar `database/microservicios/*.sql` en MySQL, `cd services && ./mvnw package`, y arrancar cada jar con `SERVER_PORT` 8081-8084, `SMARTBODY_INTERNAL_TOKEN` y `SMARTBODY_KEYS_DIR` (auth genera las claves; los demas apuntan a una carpeta con `public_key.pem`) |
+
+Pruebas: `cd services && ./mvnw test` (88 pruebas: JWT, registro y login, perfil con llamadas a
+otros servicios, foto, motores de reglas, aislamiento por usuario, progreso, chatbot, evaluador y
+reporte de efectividad).
+
+## Ejecuciones de referencia (14 de octubre de 2026)
+
+| Que demuestra | Enlace |
+|---------------|--------|
+| Pipeline del Merge Request !3: compila y prueba el monolito y los cuatro servicios, construye las cinco imagenes y despliega **las dos variantes** en kind con la misma coleccion end-to-end (36 aserciones cada una) | https://gitlab.com/Nicollflorez/smartbody/-/pipelines/2946575171 |
+| Suite `test:servicios` (88 pruebas) y suite `k8s:kind:microservicios` (36 aserciones) en la pestana *Tests* | https://gitlab.com/Nicollflorez/smartbody/-/pipelines/2946575171/test_report |
+| Job `k8s:kind:microservicios`: los 4 pods `Running` detras del gateway y la coleccion end-to-end pasando | https://gitlab.com/Nicollflorez/smartbody/-/jobs/17169341504 |
+| Imagenes `auth`, `planes`, `progreso` y `admin` | https://gitlab.com/Nicollflorez/smartbody/container_registry |
+
+Leccion del despliegue: en un nodo de 2 vCPU la suma de *requests* de CPU (servicios + MySQL +
+monitoreo + componentes del cluster) dejaba a MySQL sin programar; las reservas se redujeron a
+50-100m por contenedor, que es lo que realmente consumen en reposo.
+
+## Evolucion monolito → microservicios
+
+| Aspecto | Monolito (`backend/`) | Microservicios (`services/`) |
+|---------|------------------------|------------------------------|
+| Despliegue | 1 jar / 1 imagen | 4 jars / 4 imagenes, escalables por separado |
+| Base de datos | `smartbody_db` (17 tablas) | 3 esquemas con un dueno cada uno; catalogos replicados |
+| Identidad | Filtro JWT que consulta la tabla de usuarios en cada peticion | `auth` emite; los demas verifican con la clave publica y leen `uid`/`roles` del token |
+| Panel de administracion | Repositorios de todas las tablas | Servicio agregador sobre rutas `/internal` |
+| Contrato con la app | `/api/...` | Identico: Nginx enruta por prefijo; la misma coleccion end-to-end pasa en ambos |
