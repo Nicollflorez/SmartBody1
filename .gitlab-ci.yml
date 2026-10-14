@@ -420,6 +420,8 @@ release:
     - echo "REF=$REF" > release.env
     - |
       release-cli create --name "Smartbody v$VERSION" --tag-name "v$VERSION" --ref "$REF" \
-        --description "Lanzamiento v$VERSION. Artefactos en el Package Registry, listos para la Etapa 6 (Docker/Kubernetes)." \
+        --description "Lanzamiento v$VERSION. Jar y APK en el Package Registry; imagenes del monolito y de los microservicios (auth, planes, progreso, admin) en el Container Registry, listas para desplegar con docker-compose o k8s/." \
         --assets-link "{\"name\":\"smartbody-backend-$VERSION.jar\",\"url\":\"$GITLAB_MAVEN_URL/com/smartbody/smartbody-backend/$VERSION/smartbody-backend-$VERSION.jar\",\"link_type\":\"package\"}" \
-        --assets-link "{\"name\":\"smartbody-android-$VERSION.apk\",\"url\":\"$GITLAB_MAVEN_URL/com/smartbody/smartbody-android/$VERSION/smartbody-android-$VERSION.apk\",\"link_type\":\"package\"}"
+        --assets-link "{\"name\":\"smartbody-android-$VERSION.apk\",\"url\":\"$GITLAB_MAVEN_URL/com/smartbody/smartbody-android/$VERSION/smartbody-android-$VERSION.apk\",\"link_type\":\"package\"}" \
+        --assets-link "{\"name\":\"imagen backend:$VERSION\",\"url\":\"$CI_PROJECT_URL/container_registry\",\"link_type\":\"image\"}" \
+        --assets-link "{\"name\":\"imagenes auth, planes, progreso y admin:$VERSION\",\"url\":\"$CI_PROJECT_URL/container_registry\",\"link_type\":\"image\"}"
