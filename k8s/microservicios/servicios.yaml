@@ -92,7 +92,7 @@ spec:
             httpGet: { path: /actuator/health/readiness, port: http }
             periodSeconds: 10
           resources:
-            requests: { cpu: 200m, memory: 320Mi }
+            requests: { cpu: 100m, memory: 320Mi }
             limits: { memory: 512Mi }
       volumes:
         - name: claves-jwt
@@ -173,7 +173,7 @@ spec:
             httpGet: { path: /actuator/health/readiness, port: http }
             periodSeconds: 10
           resources:
-            requests: { cpu: 200m, memory: 320Mi }
+            requests: { cpu: 100m, memory: 320Mi }
             limits: { memory: 512Mi }
       volumes:
         - name: clave-publica
@@ -257,7 +257,7 @@ spec:
             httpGet: { path: /actuator/health/readiness, port: http }
             periodSeconds: 10
           resources:
-            requests: { cpu: 200m, memory: 320Mi }
+            requests: { cpu: 100m, memory: 320Mi }
             limits: { memory: 512Mi }
       volumes:
         - name: clave-publica
@@ -330,7 +330,7 @@ spec:
             httpGet: { path: /actuator/health/readiness, port: http }
             periodSeconds: 10
           resources:
-            requests: { cpu: 100m, memory: 256Mi }
+            requests: { cpu: 50m, memory: 256Mi }
             limits: { memory: 448Mi }
       volumes:
         - name: clave-publica
