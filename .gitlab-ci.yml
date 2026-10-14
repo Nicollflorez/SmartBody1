@@ -195,6 +195,7 @@ package:servicios:
 # Container Registry del proyecto. Kaniko no necesita un demonio de Docker en el runner.
 docker:backend:
   stage: docker
+  retry: 2
   image:
     name: gcr.io/kaniko-project/executor:v1.23.2-debug
     entrypoint: [""]
@@ -219,6 +220,7 @@ docker:backend:
 # Una imagen por microservicio (auth, planes, progreso, admin) a partir de los jars ya probados.
 docker:servicios:
   stage: docker
+  retry: 2
   image:
     name: gcr.io/kaniko-project/executor:v1.23.2-debug
     entrypoint: [""]
