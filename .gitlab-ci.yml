@@ -345,6 +345,10 @@ k8s:kind:microservicios:
     - newman run tests/e2e/smartbody.postman_collection.json --env-var baseUrl=http://docker:30080
         --reporters cli,junit --reporter-junit-export e2e-api-microservicios.xml
   after_script:
+    # Diagnostico (tambien cuando el job falla): estado de los pods, eventos y ultimas lineas de cada servicio.
+    - kubectl -n smartbody get pods -o wide || true
+    - kubectl -n smartbody get events --sort-by=.lastTimestamp | tail -25 || true
+    - for s in auth planes progreso admin; do echo "===== logs $s ====="; kubectl -n smartbody logs deployment/$s --tail=40 --all-containers || true; done
     - kind delete cluster --name smartbody || true
   artifacts:
     when: always

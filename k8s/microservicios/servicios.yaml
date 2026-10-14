@@ -84,7 +84,7 @@ spec:
           startupProbe:
             httpGet: { path: /actuator/health/liveness, port: http }
             periodSeconds: 5
-            failureThreshold: 36
+            failureThreshold: 72        # hasta 6 minutos: en un cluster pequeno arrancan 4 JVM a la vez
           livenessProbe:
             httpGet: { path: /actuator/health/liveness, port: http }
             periodSeconds: 15
@@ -165,7 +165,7 @@ spec:
           startupProbe:
             httpGet: { path: /actuator/health/liveness, port: http }
             periodSeconds: 5
-            failureThreshold: 36
+            failureThreshold: 72        # hasta 6 minutos: en un cluster pequeno arrancan 4 JVM a la vez
           livenessProbe:
             httpGet: { path: /actuator/health/liveness, port: http }
             periodSeconds: 15
@@ -249,7 +249,7 @@ spec:
           startupProbe:
             httpGet: { path: /actuator/health/liveness, port: http }
             periodSeconds: 5
-            failureThreshold: 36
+            failureThreshold: 72        # hasta 6 minutos: en un cluster pequeno arrancan 4 JVM a la vez
           livenessProbe:
             httpGet: { path: /actuator/health/liveness, port: http }
             periodSeconds: 15
@@ -322,7 +322,7 @@ spec:
           startupProbe:
             httpGet: { path: /actuator/health/liveness, port: http }
             periodSeconds: 5
-            failureThreshold: 36
+            failureThreshold: 72        # hasta 6 minutos: en un cluster pequeno arrancan 4 JVM a la vez
           livenessProbe:
             httpGet: { path: /actuator/health/liveness, port: http }
             periodSeconds: 15

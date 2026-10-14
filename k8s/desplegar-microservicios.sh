@@ -44,17 +44,18 @@ if ! kubectl -n $NS get secret smartbody-interno >/dev/null 2>&1; then
     echo "Token interno entre servicios generado en el Secret smartbody-interno."
 fi
 
-kubectl apply -k "$RAIZ/k8s/microservicios"
-
+# Con VERSION se aplica directamente la etiqueta de imagen pedida (un solo rollout).
 if [ -n "${VERSION:-}" ]; then
-    for s in auth planes progreso admin; do
-        kubectl -n $NS set image deployment/$s $s="$REGISTRO/$s:$VERSION"
-    done
+    kubectl kustomize "$RAIZ/k8s/microservicios" \
+        | sed -E "s#registry\.gitlab\.com/nicollflorez/smartbody/(auth|planes|progreso|admin):latest#$REGISTRO/\1:$VERSION#g" \
+        | kubectl apply -f -
+else
+    kubectl apply -k "$RAIZ/k8s/microservicios"
 fi
 
 kubectl -n $NS rollout status statefulset/mysql --timeout=300s
 for s in auth planes progreso admin; do
-    kubectl -n $NS rollout status deployment/$s --timeout=420s
+    kubectl -n $NS rollout status deployment/$s --timeout=600s
 done
 kubectl -n $NS rollout status deployment/nginx --timeout=120s
 kubectl -n $NS rollout status deployment/prometheus --timeout=120s
