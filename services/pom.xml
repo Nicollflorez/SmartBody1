@@ -14,7 +14,7 @@
     <!-- Microservicios de Smartbody. La version se mantiene alineada con backend/pom.xml. -->
     <groupId>com.smartbody</groupId>
     <artifactId>smartbody-servicios</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>smartbody-servicios</name>
 
