@@ -1,3 +1,5 @@
-# Solo el jar entra en la imagen; el codigo fuente y las claves se quedan fuera.
-*
-!target/smartbody-backend-*.jar
+
+target/
+.git/
+.gitignore
+keys/
