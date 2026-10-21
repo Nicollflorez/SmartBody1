@@ -2,7 +2,7 @@
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
 COPY . .
-RUN mvn clean package -DskipTests -f pom.xml
+RUN mvn clean package -DskipTests
 
 # Etapa 2: Ejecución ligera de la app
 FROM eclipse-temurin:17-jre-alpine
