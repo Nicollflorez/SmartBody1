@@ -1,10 +1,10 @@
-# Etapa 1: Compilar el proyecto con Maven dentro de Render
+# Etapa 1: Compilar el proyecto usando Maven directamente en la nube
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
 COPY . .
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests
 
-# Etapa 2: Ejecutar la aplicación ligera y cuidar la memoria RAM
+# Etapa 2: Ejecutar la aplicación ligera cuidando la memoria RAM
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/smartbody-backend-*.jar /app/app.jar
