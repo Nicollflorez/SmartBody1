@@ -1,14 +1,7 @@
-# Pipeline de lanzamiento de Smartbody en GitLab CI/CD (Etapa 5: gestion de lanzamientos).
+
 #
-# Fases: version -> build -> test -> package -> publish -> release.
-#   - Cada push a main publica un SNAPSHOT en el Package Registry del proyecto (repositorio de artefactos).
-#   - "Run pipeline" con el input publicar_release=true: compila la version oficial; el job "publish:release"
-#     queda en espera de aprobacion manual (boton Play); al aprobarlo se publica, se etiqueta
-#     vX.Y.Z y se crea el Release de GitLab con el jar y el apk, listos para la Etapa 6.
-#
-# Corre integramente en los runners de gitlab.com: no necesita Docker ni memoria del PC de desarrollo.
-# Variable opcional del proyecto (Settings > CI/CD > Variables): GITLAB_PUSH_TOKEN (project access token
-# con write_repository) para que el release haga el commit de version y la etiqueta.
+# Corre integramente en los runners de gitlab.com: 
+# Variable opcional del proyecto  GITLAB_PUSH_TOKEN 
 
 # Opciones del formulario "Run pipeline" (Build > Pipelines > New pipeline > Inputs).
 spec:
@@ -190,7 +183,7 @@ package:servicios:
     paths: [services/*/target/smartbody-*.jar]
     expire_in: 1 week
 
-# ---------------------------------------------------------------- docker (Etapa 6)
+# ---------------------------------------------------------------- docker 
 # Construye la imagen del backend con el jar que paso las pruebas y la publica en el
 # Container Registry del proyecto. Kaniko no necesita un demonio de Docker en el runner.
 docker:backend:
@@ -245,7 +238,7 @@ docker:servicios:
         $DESTINOS
     - 'echo "Imagen publicada: $IMAGEN:$VERSION"'
 
-# ---------------------------------------------------------------- deploy (Etapas 6 y 7)
+# ---------------------------------------------------------------- deploy 
 # Valida la configuracion de Nginx y los manifiestos de Kubernetes sin necesitar un cluster.
 nginx:validate:
   stage: deploy
