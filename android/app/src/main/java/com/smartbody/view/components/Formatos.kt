@@ -1,5 +1,6 @@
 package com.smartbody.view.components
 
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -41,6 +42,16 @@ object Formatos {
             LocalDateTime.parse(fechaHora).format(FORMATO_FECHA_HORA)
         } catch (e: Exception) {
             fechaHora.take(16).replace('T', ' ')
+        }
+    }
+
+    /** "2027-04-17" -> "17 abr 2027" (fecha sin hora). */
+    fun fechaSola(fecha: String?): String {
+        if (fecha.isNullOrBlank()) return ""
+        return try {
+            LocalDate.parse(fecha).format(FORMATO_FECHA)
+        } catch (e: Exception) {
+            fecha.take(10)
         }
     }
 

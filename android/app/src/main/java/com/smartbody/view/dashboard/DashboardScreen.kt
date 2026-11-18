@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PersonAdd
@@ -58,7 +59,8 @@ fun DashboardScreen(
     alCompletarPerfil: () -> Unit,
     alGenerarPlan: () -> Unit,
     alIrAPestana: (String) -> Unit,
-    alAbrirAdministracion: (PestanaAdmin) -> Unit
+    alAbrirAdministracion: (PestanaAdmin) -> Unit,
+    alAbrirPrediccion: () -> Unit
 ) {
     val estado by presenter.estado.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -103,7 +105,8 @@ fun DashboardScreen(
                 alCompletarPerfil = alCompletarPerfil,
                 alGenerarPlan = alGenerarPlan,
                 alIrAPestana = alIrAPestana,
-                alAbrirAdministracion = alAbrirAdministracion
+                alAbrirAdministracion = alAbrirAdministracion,
+                alAbrirPrediccion = alAbrirPrediccion
             )
         }
     }
@@ -117,7 +120,8 @@ private fun ContenidoInicio(
     alCompletarPerfil: () -> Unit,
     alGenerarPlan: () -> Unit,
     alIrAPestana: (String) -> Unit,
-    alAbrirAdministracion: (PestanaAdmin) -> Unit
+    alAbrirAdministracion: (PestanaAdmin) -> Unit,
+    alAbrirPrediccion: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -214,6 +218,13 @@ private fun ContenidoInicio(
             titulo = "Registrar medidas",
             subtitulo = "Actualiza tu peso y sigue tu progreso",
             alPulsar = { alIrAPestana(Rutas.PROGRESO) }
+        )
+
+        AccesoRapido(
+            icono = Icons.Filled.Timer,
+            titulo = "Tiempo hasta tu objetivo",
+            subtitulo = "Estimación orientativa y tu progreso real",
+            alPulsar = alAbrirPrediccion
         )
 
         AvisoSalud()

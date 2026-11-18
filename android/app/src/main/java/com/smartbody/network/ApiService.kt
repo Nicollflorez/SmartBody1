@@ -18,6 +18,10 @@ import com.smartbody.model.dto.ObjetivoDto
 import com.smartbody.model.dto.PerfilDto
 import com.smartbody.model.dto.PerfilRequest
 import com.smartbody.model.dto.PlanNutricionalDto
+import com.smartbody.model.dto.PrediccionDto
+import com.smartbody.model.dto.PrediccionRequest
+import com.smartbody.model.dto.PrediccionResumenDto
+import com.smartbody.model.dto.SeguimientoPrediccionDto
 import com.smartbody.model.dto.ProgresoDto
 import com.smartbody.model.dto.RegistroRequest
 import com.smartbody.model.dto.RestriccionDto
@@ -151,4 +155,15 @@ interface ApiService {
 
     @POST("api/progress")
     suspend fun registrarMedida(@Body peticion: MedidaRequest): Response<MedidaDto>
+
+    // --- Prediccion del tiempo hasta el peso objetivo (mineria de datos) ---
+
+    @POST("api/predicciones/tiempo-perdida-peso")
+    suspend fun predecirTiempoPesoObjetivo(@Body peticion: PrediccionRequest): Response<PrediccionDto>
+
+    @GET("api/predicciones")
+    suspend fun historialPredicciones(): Response<List<PrediccionResumenDto>>
+
+    @GET("api/predicciones/{id}/seguimiento")
+    suspend fun seguimientoPrediccion(@Path("id") id: Long): Response<SeguimientoPrediccionDto>
 }

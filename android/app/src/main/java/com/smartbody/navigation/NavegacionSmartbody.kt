@@ -36,6 +36,7 @@ import com.smartbody.presenter.login.LoginPresenter
 import com.smartbody.presenter.nutrition.NutricionPresenter
 import com.smartbody.presenter.nutrition.SustituirAlimentoPresenter
 import com.smartbody.presenter.plan.GenerarPlanPresenter
+import com.smartbody.presenter.prediccion.PrediccionPresenter
 import com.smartbody.presenter.profile.PerfilFormPresenter
 import com.smartbody.presenter.profile.PerfilPresenter
 import com.smartbody.presenter.progress.ProgresoPresenter
@@ -50,6 +51,7 @@ import com.smartbody.view.login.LoginScreen
 import com.smartbody.view.nutrition.NutricionScreen
 import com.smartbody.view.nutrition.SustituirAlimentoScreen
 import com.smartbody.view.plan.GenerarPlanScreen
+import com.smartbody.view.prediccion.PrediccionScreen
 import com.smartbody.view.profile.EditarPerfilScreen
 import com.smartbody.view.profile.PerfilScreen
 import com.smartbody.view.progress.ProgresoScreen
@@ -80,6 +82,7 @@ object Rutas {
     const val CHAT = "chat"
     const val ADMINISTRACION = "administracion?pestana={pestana}"
     const val ADMIN_USUARIO = "administracion/usuario/{usuarioId}"
+    const val PREDICCION = "prediccion"
 
     fun adminUsuario(usuarioId: Long) = "administracion/usuario/$usuarioId"
     fun administracion(pestana: PestanaAdmin) = "administracion?pestana=${pestana.name}"
@@ -159,8 +162,16 @@ fun NavegacionSmartbody() {
                     alCompletarPerfil = { navController.navigate(Rutas.EDITAR_PERFIL) },
                     alGenerarPlan = { navController.navigate(Rutas.GENERAR_PLAN) },
                     alIrAPestana = { navController.irAPestana(it) },
-                    alAbrirAdministracion = { navController.navigate(Rutas.administracion(it)) }
+                    alAbrirAdministracion = { navController.navigate(Rutas.administracion(it)) },
+                    alAbrirPrediccion = { navController.navigate(Rutas.PREDICCION) }
                 )
+            }
+
+            composable(Rutas.PREDICCION) {
+                val presenter = recordarPresenter {
+                    PrediccionPresenter(it.prediccionRepository, it.perfilRepository, it.nutricionRepository, it.rutinaRepository)
+                }
+                PrediccionScreen(presenter = presenter, alVolver = { navController.popBackStack() })
             }
 
             composable(Rutas.RUTINA) {

@@ -6,6 +6,7 @@ import com.smartbody.model.repository.AuthRepository
 import com.smartbody.model.repository.ChatRepository
 import com.smartbody.model.repository.NutricionRepository
 import com.smartbody.model.repository.PerfilRepository
+import com.smartbody.model.repository.PrediccionRepository
 import com.smartbody.model.repository.ProcesadorImagen
 import com.smartbody.model.repository.ProgresoRepository
 import com.smartbody.model.repository.RutinaRepository
@@ -46,4 +47,6 @@ class Contenedor(contexto: Context) {
     val nutricionRepository: NutricionRepository by lazy { NutricionRepository(api) }
 
     val progresoRepository: ProgresoRepository by lazy { ProgresoRepository(api) }
+
+    val prediccionRepository: PrediccionRepository by lazy { PrediccionRepository(api) }
 }
