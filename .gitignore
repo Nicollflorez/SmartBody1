@@ -30,3 +30,6 @@ devops/jenkins/*.war
 # --- Sistema operativo ---
 Thumbs.db
 .DS_Store
+
+# Artefactos de compilacion de Maven en cualquier modulo
+target/
