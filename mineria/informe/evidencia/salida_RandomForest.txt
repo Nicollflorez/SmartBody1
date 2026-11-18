@@ -1,0 +1,25 @@
+=== Run information ===
+
+Scheme:       weka.classifiers.trees.RandomForest -P 100 -I 100 -num-slots 1 -K 0 -M 1.0 -V 0.001 -S 1
+Relation:     smartbody_semanas_estimadas
+Instances:    90000
+Attributes:   19
+Test mode:    10-fold cross-validation (semilla 1, valores por defecto del Explorer)
+Tiempo total: 3230 s
+
+=== Classifier model (full training set) ===
+
+RandomForest
+
+Bagging with 100 iterations and base learner
+
+weka.classifiers.trees.RandomTree -K 0 -M 1.0 -V 0.001 -S 1 -do-not-check-capabilities
+
+=== Summary ===
+
+Correlation coefficient                  0.9775
+Mean absolute error                      3.7375
+Root mean squared error                  5.3812
+Relative absolute error                 19.6928 %
+Root relative squared error             21.8647 %
+Total Number of Instances            90000     

@@ -1,0 +1,23 @@
+INFORME DE LIMPIEZA - smartbody_dataset_100000.arff -> smartbody_limpio.arff
+Filas originales: 100000
+  eliminadas por duplicados                         3500 (3.50%)
+  eliminadas por faltantes                          3500 (3.50%)
+  eliminadas por invalidos (rangos o coherencia)    3000 (3.00%)
+Filas conservadas: 90000 (90.00%)
+De ellas, con al menos un atributo fuera del rango IQR (conservadas tras validar): 16461 (18.29%)
+
+Limites IQR usados (calculados sobre el dataset original):
+  edad                         Q1=   30.00  Q3=   57.00  limite inferior=   -10.50  limite superior=    97.50
+  altura_cm                    Q1=  161.50  Q3=  175.30  limite inferior=   140.80  limite superior=   196.00
+  peso_inicial_kg              Q1=   63.10  Q3=   95.10  limite inferior=    15.10  limite superior=   143.10
+  peso_objetivo_kg             Q1=   61.60  Q3=   83.40  limite inferior=    28.90  limite superior=   116.10
+  diferencia_peso_kg           Q1=    5.10  Q3=   13.00  limite inferior=    -6.75  limite superior=    24.85
+  imc_inicial                  Q1=   22.50  Q3=   33.70  limite inferior=     5.70  limite superior=    50.50
+  entrenamientos_semana        Q1=    3.00  Q3=    5.00  limite inferior=     0.00  limite superior=     8.00
+  minutos_sesion               Q1=   40.00  Q3=   80.00  limite inferior=   -20.00  limite superior=   140.00
+  consumo_energetico_kcal      Q1= 1873.00  Q3= 2571.00  limite inferior=   826.00  limite superior=  3618.00
+  balance_energetico_kcal      Q1=  218.00  Q3=  364.00  limite inferior=    -1.00  limite superior=   583.00
+  restricciones_total          Q1=    0.00  Q3=    1.00  limite inferior=    -1.50  limite superior=     2.50
+  adherencia_nutricional_pct   Q1=   63.30  Q3=   86.60  limite inferior=    28.35  limite superior=   121.55
+  adherencia_ejercicio_pct     Q1=   58.20  Q3=   85.70  limite inferior=    16.95  limite superior=   126.95
+  semanas_estimadas            Q1=   19.80  Q3=   48.30  limite inferior=   -22.95  limite superior=    91.05

@@ -1,0 +1,22 @@
+RESULTADOS DE MODELOS - SmartBody (regresion de semanas_estimadas)
+Validacion cruzada: 10 particiones, semilla 42, 90000 filas (dataset limpio).
+
+== Tabla comparativa ==
+algoritmo               MAE     RMSE       CC       R2   MAE desv  P50 err  P90 err  tiempo(s)
+LinearRegression     14.112   18.527   0.6583   0.4333      0.119   11.132   29.975       20.3
+REPTree               4.732    6.957   0.9593   0.9201      0.033    3.117   11.064       77.6
+RandomForest          3.739    5.379   0.9775   0.9522      0.033    2.593    8.341     2916.2
+
+MAE desv: desviacion estandar del MAE entre las 10 particiones (estabilidad).
+P50/P90 err: error absoluto mediano y percentil 90, en semanas.
+
+== MAE por rango de semanas reales (analisis de errores) ==
+algoritmo                0-12 sem      12-24 sem      24-48 sem     48-104 sem
+LinearRegression     14.456 (n=8536)   13.476 (n=21107)    9.412 (n=36991)   22.003 (n=23366)
+REPTree               1.639 (n=8536)    2.871 (n=21107)    4.741 (n=36991)    7.529 (n=23366)
+RandomForest          1.776 (n=8536)    2.368 (n=21107)    3.354 (n=36991)    6.304 (n=23366)
+
+== Configuracion ==
+LinearRegression -S 0 -R 1.0E-8 -num-decimal-places 4
+REPTree -M 2 -V 0.001 -N 3 -S 42 -L -1 -I 0.0
+RandomForest -P 100 -I 100 -num-slots 1 -K 0 -M 1.0 -V 0.001 -S 42

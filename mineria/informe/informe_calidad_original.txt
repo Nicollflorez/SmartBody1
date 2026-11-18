@@ -1,0 +1,44 @@
+INFORME DE CALIDAD DE DATOS - smartbody_dataset_100000.arff
+Instancias cargadas por Weka: 100000
+Atributos: 19 (clase: semanas_estimadas)
+
+== 1. Atributos, tipos, faltantes, estadisticos y valores extremos (IQR) ==
+atributo                     tipo       faltan        min        max      media       desv       Q1       Q3  extremos
+edad                         NUMERIC       771      -5.00     250.00      44.48      19.80    30.00    57.00       327
+sexo                         NOMINAL         0   categorias: {MASCULINO=49882, FEMENINO=50118}
+altura_cm                    NUMERIC       821      30.00     320.00     168.55      14.93   161.50   175.30       702
+peso_inicial_kg              NUMERIC         0      40.00     160.00      80.83      22.35    63.10    95.10      1172
+peso_objetivo_kg             NUMERIC         0      40.00     144.50      73.51      15.85    61.60    83.40      1005
+diferencia_peso_kg           NUMERIC         0       2.00      45.00      10.59       8.44     5.10    13.00      7546
+imc_inicial                  NUMERIC         0      17.49      68.42      28.53       7.40    22.50    33.70       285
+objetivo                     NOMINAL         0   categorias: {PERDER_PESO=75075, GANAR_MASA=24925}
+nivel_actividad              NOMINAL       784   categorias: {MODERADO=29683, SEDENTARIO=24763, LIGERO=29829, ACTIVO=14941}
+nivel_experiencia            NOMINAL         0   categorias: {INTERMEDIO=35057, AVANZADO=14899, PRINCIPIANTE=50044}
+entrenamientos_semana        NUMERIC       782       2.00       7.00       3.93       1.35     3.00     5.00         0
+minutos_sesion               NUMERIC       756       0.00     600.00      65.90      45.75    40.00    80.00      6402
+tipo_actividad               NOMINAL       778   categorias: {FUERZA=34934, CARDIO=34481, MIXTO=29807}
+consumo_energetico_kcal      NUMERIC         0     993.00    4295.00    2245.60     505.28  1873.00  2571.00       799
+balance_energetico_kcal      NUMERIC         0       0.00     600.00     298.07      98.60   218.00   364.00       321
+restricciones_total          NUMERIC       792       0.00       3.00       0.84       1.09     0.00     1.00     14457
+adherencia_nutricional_pct   NUMERIC       793     -10.00     150.00      73.14      19.71    63.30    86.60      5225
+adherencia_ejercicio_pct     NUMERIC       761      15.00     100.00      70.30      20.36    58.20    85.70       631
+semanas_estimadas            NUMERIC         0      -3.00     104.00      37.50      24.41    19.80    48.30      5877
+
+Extremos (IQR): valores fuera de [Q1 - 1,5*IQR ; Q3 + 1,5*IQR].
+
+== 2. Valores faltantes ==
+Filas con al menos un valor faltante: 3500 (3.50%)
+
+== 3. Registros duplicados (contenido identico en todos los atributos) ==
+Filas distintas: 96500
+Filas duplicadas (sobrantes): 3500 (3.50%)
+
+== 4. Validacion de rangos y coherencia (un registro puede fallar varias reglas) ==
+diferencia_peso_kg no coincide con |inicial - objetivo|           619
+PERDER_PESO con peso objetivo >= peso inicial                     635
+altura_cm fuera de 120..230                                       651
+adherencia_nutricional_pct fuera de 0..100                        635
+imc_inicial no coincide con peso/altura                          1229
+minutos_sesion fuera de 15..180                                   610
+semanas_estimadas <= 0 o > 104                                    662
+edad fuera de 12..100                                             646

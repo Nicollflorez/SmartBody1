@@ -1,0 +1,7 @@
+== Evaluando RandomForest ==
+nov. 10, 2026 9:42:43 P. M. com.github.fommil.netlib.ARPACK <clinit>
+ADVERTENCIA: Failed to load implementation from: com.github.fommil.netlib.NativeSystemARPACK
+nov. 10, 2026 9:42:43 P. M. com.github.fommil.jni.JniLoader liberalLoad
+INFORMACIÓN: successfully loaded C:\Users\flore\AppData\Local\Temp\jniloader14216919111609243167netlib-native_ref-win-x86_64.dll
+  MAE=3.7375 RMSE=5.3812 CC=0.9775  (3230 s)
+EXIT=0

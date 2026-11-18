@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Minería predictiva con Weka en SmartBody</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #1d1d1f; font-size: 11pt; line-height: 1.45; margin: 0; }
+  h1 { font-size: 22pt; color: #1b3a6b; margin: 0 0 6pt; }
+  h2 { font-size: 15pt; color: #1b3a6b; border-bottom: 2px solid #c02bd6; padding-bottom: 3pt; margin: 18pt 0 8pt; page-break-after: avoid; }
+  h3 { font-size: 12pt; color: #333; margin: 12pt 0 4pt; page-break-after: avoid; }
+  p { margin: 5pt 0; text-align: justify; }
+  .portada { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: center; page-break-after: always; }
+  .portada .sub { font-size: 14pt; color: #555; margin: 8pt 0; }
+  .portada .meta { margin-top: 40pt; font-size: 11pt; color: #444; }
+  table { width: 100%; border-collapse: collapse; margin: 8pt 0; font-size: 9.5pt; page-break-inside: avoid; }
+  th, td { border: 1px solid #c9ced8; padding: 4pt 6pt; text-align: left; vertical-align: top; }
+  th { background: #1b3a6b; color: #fff; }
+  tr:nth-child(even) td { background: #f5f7fb; }
+  td.num, th.num { text-align: right; }
+  pre { background: #f4f5f7; border-left: 4px solid #c02bd6; padding: 7pt 9pt; font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; line-height: 1.3; white-space: pre-wrap; word-wrap: break-word; page-break-inside: avoid; margin: 6pt 0; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 9.5pt; background: #f1f3f6; padding: 0 3pt; }
+  figure { margin: 10pt 0; text-align: center; page-break-inside: avoid; }
+  figure img { max-width: 100%; max-height: 135mm; border: 1px solid #d5d9e0; }
+  figcaption { font-size: 9pt; color: #555; margin-top: 3pt; text-align: center; }
+  .pendiente { border: 2px dashed #c02bd6; background: #fbf3fd; padding: 10pt; text-align: center; color: #6b1a7a; font-size: 9.5pt; margin: 10pt 0; page-break-inside: avoid; }
+  .nota { background: #eef4ff; border-left: 4px solid #1b3a6b; padding: 7pt 10pt; margin: 8pt 0; font-size: 10pt; page-break-inside: avoid; }
+  .alerta { background: #fff6e5; border-left: 4px solid #d88a00; padding: 7pt 10pt; margin: 8pt 0; font-size: 10pt; page-break-inside: avoid; }
+  .salto { page-break-before: always; }
+  ol li, ul li { margin: 2pt 0; }
+  .pie { font-size: 8.5pt; color: #666; }
+</style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<div class="portada">
+  <div class="sub">Tecnologías Emergentes · Ing. Carlos Pineda</div>
+  <h1>Minería de datos predictiva con Weka</h1>
+  <div class="sub"><b>Estimación del tiempo hasta el peso objetivo en SmartBody</b></div>
+  <p style="text-align:center; margin-top:24pt;">Paso a paso: problema, datos, Weka, modelos, resultados e integración en la aplicación</p>
+  <div class="meta">Presentado por: Nicoll Florez<br>Noviembre de 2026</div>
+</div>
+
+<!-- 1 -->
+<h2>1. Problema y objetivo</h2>
+<p>SmartBody genera planes nutricionales y rutinas personalizadas, pero no indica cuánto tiempo podría necesitar una persona para alcanzar su peso objetivo. La pregunta de investigación es si ese tiempo puede estimarse a partir de datos físicos, del plan, de la actividad física y de la adherencia al plan.</p>
+<p>Según la clase, la minería de datos transforma datos en bruto en conocimiento práctico, y la <b>minería predictiva</b> sirve para anticipar tendencias y ayudar a elegir decisiones. Aquí el conocimiento es una estimación orientativa de las semanas necesarias.</p>
+<table>
+  <tr><th>Elemento</th><th>Decisión</th></tr>
+  <tr><td>Tipo de problema</td><td>Regresión supervisada: la variable objetivo es numérica (<code>semanas_estimadas</code>).</td></tr>
+  <tr><td>Metodología</td><td>CRISP-DM, con sus seis fases (diapositivas 7 a 14 de la clase).</td></tr>
+  <tr><td>Herramienta de minería</td><td>Weka 3.8.6, usado desde su interfaz gráfica para explorar y evaluar, y desde su API de Java para entrenar y servir el modelo.</td></tr>
+  <tr><td>Datos</td><td>Dataset <b>sintético</b> de 100.000 filas. No son datos clínicos reales.</td></tr>
+</table>
+<div class="alerta"><b>Advertencia.</b> El resultado es orientativo. No garantiza ninguna pérdida ni ganancia de peso y no sustituye a un profesional de nutrición o de salud.</div>
+
+<!-- 2 -->
+<h2>2. ¿Qué es Weka?</h2>
+<p>Weka es una herramienta libre de la Universidad de Waikato (Nueva Zelanda), escrita en Java. Reúne algoritmos de aprendizaje automático, herramientas para preparar datos y métodos de evaluación. Las diapositivas de la clase la listan entre las herramientas de minería de datos, con la ventaja de tener <b>interfaz gráfica amigable</b> y una amplia colección de algoritmos de clasificación, agrupación y regresión.</p>
+<p>Weka se puede usar de tres formas:</p>
+<ul>
+  <li><b>Explorer:</b> la interfaz gráfica con pestañas (Preprocess, Classify, Cluster, Associate, Select attributes, Visualize).</li>
+  <li><b>Línea de comandos</b> y <b>API de Java</b>: lo que usamos para entrenar el modelo y para cargarlo en el backend.</li>
+</ul>
+<p>Para que los resultados sean reproducibles, usamos la misma versión en todas partes: <b>weka-stable 3.8.6</b>.</p>
+
+<!-- 3 -->
+<h2>3. Instalación de Weka y del entorno</h2>
+<h3>3.1 Requisitos</h3>
+<table>
+  <tr><th>Componente</th><th>Versión / verificación</th></tr>
+  <tr><td>Java</td><td>OpenJDK 17.0.19 (comando <code>java -version</code>).</td></tr>
+  <tr><td>Weka</td><td>weka-stable 3.8.6 desde Maven Central (<code>nz.ac.waikato.cms.weka:weka-stable:3.8.6</code>).</td></tr>
+  <tr><td>Base de datos</td><td>MariaDB 10.4 (XAMPP), base <code>smartbody_mineria</code> para el dataset.</td></tr>
+  <tr><td>Equipo</td><td>Windows 11, 3,8 GB de RAM, sin Docker. Por eso se usa <code>-Xmx2g</code>.</td></tr>
+</table>
+<h3>3.2 Descargar Weka y sus dependencias</h3>
+<p>Weka no se instala con un ejecutable: sus librerías se descargan con Maven. Creamos un archivo <code>pom.xml</code> mínimo en la carpeta <code>mineria\</code> que declara solo Weka. Maven descarga también las dependencias transitivas (álgebra matricial y librerías nativas de netlib, necesarias para la regresión lineal):</p>
+<pre>&lt;dependency&gt;
+    &lt;groupId&gt;nz.ac.waikato.cms.weka&lt;/groupId&gt;
+    &lt;artifactId&gt;weka-stable&lt;/artifactId&gt;
+    &lt;version&gt;3.8.6&lt;/version&gt;
+&lt;/dependency&gt;
+
+# Copiar todas las librerías a mineria\lib
+mvn -f mineria\pom.xml dependency:copy-dependencies -DoutputDirectory=lib -DincludeScope=runtime</pre>
+<p>Al final, la carpeta <code>lib\</code> contiene 32 archivos JAR. Lo verificamos con un programa mínimo que carga <code>weka.core.Instances</code> e imprime la versión, que es 3.8.6.</p>
+<h3>3.3 Abrir la interfaz gráfica</h3>
+<pre>cd c:\proyects\SmartBody\mineria
+java -Xmx2g -cp "lib\*" weka.gui.GUIChooser</pre>
+<figure>
+  <img src="img/guichooser.png" alt="Weka GUI Chooser">
+  <figcaption>Figura 1. Ventana Weka GUI Chooser. El aviso sobre el gestor de paquetes es informativo. Desde aquí se abre el botón <b>Explorer</b>.</figcaption>
+</figure>
+<!-- SECCION 4 -->
+<h2 class="salto">4. Datos: dataset sintético y formato ARFF</h2>
+<p>No hay datos longitudinales reales con consentimiento, así que generamos un dataset sintético con un programa Java de un solo archivo (<code>mineria\GeneradorDataset.java</code>). Usa una semilla fija (42), así que cualquier persona puede regenerar exactamente el mismo archivo.</p>
+<h3>4.1 Regla de generación de la variable objetivo</h3>
+<pre>PERDER_PESO:  kgSemana = min( (balance*7*adhN/100 + ejercicioKcal*adhE/100) / 7700 ,  1% del peso )
+GANAR_MASA:   kgSemana = 0,25 * factorExperiencia * (0,5*adhN/100 + 0,5*adhE/100)
+
+semanas_estimadas = diferencia / kgSemana * ruido,  ruido ~ N(1; 0,10) en [0,75; 1,25]
+                    acotado a [2; 104]</pre>
+<p>Esta regla define el valor "real" de cada persona. Por eso las correlaciones altas que obtuvimos validan el flujo, pero no la precisión sobre personas reales (ver sección 8).</p>
+<h3>4.2 Distribución de registros</h3>
+<table>
+  <tr><th>Tipo de registro</th><th class="num">Filas</th><th class="num">Porcentaje</th><th>Qué contiene</th></tr>
+  <tr><td>LIMPIO</td><td class="num">80.000</td><td class="num">80 %</td><td>Datos coherentes y en rango.</td></tr>
+  <tr><td>OUTLIER</td><td class="num">10.000</td><td class="num">10 %</td><td>Valores extremos pero plausibles (edades de 62 a 80, pesos de 120 a 160 kg).</td></tr>
+  <tr><td>PROBLEMATICO_DUPLICADO</td><td class="num">3.500</td><td class="num">3,5 %</td><td>Copias exactas de registros limpios.</td></tr>
+  <tr><td>PROBLEMATICO_FALTANTE</td><td class="num">3.500</td><td class="num">3,5 %</td><td>Entre 1 y 3 campos vacíos.</td></tr>
+  <tr><td>PROBLEMATICO_INVALIDO</td><td class="num">3.000</td><td class="num">3 %</td><td>Edad -5 o 250, altura 30 o 320 cm, adherencia 150 %, IMC incoherente, etc.</td></tr>
+</table>
+<p>Los 100.000 registros se cargaron en la base <code>smartbody_mineria</code> (MariaDB). El script <code>mineria\sql\01_dataset_predictivo.sql</code> crea la tabla y carga el CSV con <code>LOAD DATA LOCAL INFILE</code>. El resultado se verificó: 100.000 filas y 100.000 identificadores únicos.</p>
+<h3>4.3 Formato ARFF</h3>
+<p>Weka trabaja con ficheros ARFF. Cada atributo tiene un tipo (numérico o nominal). La última columna es la <b>clase</b>, es decir, lo que el modelo aprende a predecir:</p>
+<pre>@relation smartbody_semanas_estimadas
+@attribute edad NUMERIC
+@attribute sexo {MASCULINO,FEMENINO}
+@attribute altura_cm NUMERIC
+...
+@attribute semanas_estimadas NUMERIC
+@data
+28,MASCULINO,170.0,90.0,80.0,10.0,31.14,PERDER_PESO,...,22.6</pre>
+<p>Los identificadores (<code>id_registro</code>, <code>usuario_id</code>) y la etiqueta de control (<code>tipo_registro</code>) <b>no</b> entran al ARFF. Así el modelo no puede usarlos para hacer trampa.</p>
+
+<!-- SECCION 5 -->
+<h2>5. Fase 2: comprensión de los datos</h2>
+<p>Abrimos el dataset original en Weka Explorer (pestaña <b>Preprocess</b> → <b>Open file...</b>). La ventana muestra la relación, el número de instancias (100.000) y de atributos (19). Al seleccionar cada atributo, Weka muestra sus estadísticas (mínimo, máximo, media y desviación) y su número de valores faltantes.</p>
+<figure>
+  <img src="img/01_resumen.png" alt="Weka Explorer, dataset original">
+  <figcaption>Figura 2. Weka Explorer con el dataset original: relación, 100.000 instancias y 19 atributos.</figcaption>
+</figure>
+<figure>
+  <img src="img/03_edad.png" alt="Estadísticas de edad">
+  <figcaption>Figura 3. Atributo <code>edad</code>: el mínimo es -5 y el máximo 250. Son valores imposibles, y por eso se detectan en la fase de preparación.</figcaption>
+</figure>
+<div class="pendiente">[Captura pendiente: 02 · Visualize All del dataset original]<br>[Captura pendiente: 04 · adherencia_nutricional_pct (mínimo -10, máximo 150)]<br>[Captura pendiente: 05 · altura_cm (mínimo 30, máximo 320, 821 faltantes)]</div>
+<p>El informe de calidad se generó también con la API de Weka (<code>mineria\herramientas\InformeCalidadArff.java</code>), que equivale a la pestaña Preprocess. Estos son los hallazgos:</p>
+<table>
+  <tr><th>Problema</th><th class="num">Filas</th><th>Ejemplo</th></tr>
+  <tr><td>Valores faltantes</td><td class="num">3.500 (3,50 %)</td><td>Campos <code>altura_cm</code>, <code>edad</code>, <code>minutos_sesion</code>, etc.</td></tr>
+  <tr><td>Duplicados</td><td class="num">3.500 (3,50 %)</td><td>Quedan 96.500 filas distintas.</td></tr>
+  <tr><td>Rango fuera de lo válido</td><td class="num">entre 610 y 1.230 por regla</td><td>Edad, altura, adherencia, minutos y semanas.</td></tr>
+  <tr><td>Incoherencia</td><td class="num">635</td><td>Objetivo PERDER_PESO con peso objetivo mayor que el peso inicial.</td></tr>
+</table>
+<p>Los registros limpios y los outliers no fallan ninguna regla. Solo fallan los problemáticos.</p>
+<figure>
+  <img src="img/03_histogramas_original.png" alt="Histogramas del dataset original">
+  <figcaption>Figura 4. Histogramas de los 19 atributos del dataset original (equivalente a Visualize All). Se ven los picos artificiales en 104 semanas y en 100 % de adherencia.</figcaption>
+</figure>
+
+<!-- SECCION 6 -->
+<h2>6. Fase 3: preparación de los datos</h2>
+<p>Pasos aplicados, en este orden:</p>
+<ol>
+  <li><b>Duplicados:</b> se elimina cada repetición y se conserva la primera aparición (3.500 filas).</li>
+  <li><b>Faltantes:</b> se eliminan las filas con cualquier valor vacío (3.500 filas). No imputamos: con 1 a 3 campos vacíos, rellenar con la media inventa datos y altera la relación con la clase.</li>
+  <li><b>Rangos y coherencia:</b> se eliminan las filas que incumplen alguna regla (3.000 filas).</li>
+  <li><b>Outliers:</b> <b>no se eliminan</b>. Cumplen todas las reglas, así que son valores extremos plausibles. Eliminarlos sesgaría el modelo hacia personas típicas.</li>
+</ol>
+<p>Estas reglas están en <code>mineria\herramientas\LimpiezaDataset.java</code>. Fragmento:</p>
+<pre>static boolean cumpleReglas(Instance in, Instances d) {
+    ...
+    if (edad &lt; 12 || edad &gt; 100) return false;
+    if (adhN &lt; 0 || adhN &gt; 100) return false;
+    if (semanas &lt;= 0 || semanas &gt; 104) return false;
+    if (Math.abs(pesoIni / Math.pow(altura / 100.0, 2) - imc) &gt; 0.05) return false;
+    String obj = in.stringValue(d.attribute("objetivo"));
+    if (obj.equals("PERDER_PESO") &amp;&amp; pesoObj &gt;= pesoIni) return false;
+    return true;
+}</pre>
+<table>
+  <tr><th>Paso</th><th class="num">Filas</th></tr>
+  <tr><td>Dataset original</td><td class="num">100.000</td></tr>
+  <tr><td>Eliminadas por duplicados</td><td class="num">-3.500</td></tr>
+  <tr><td>Eliminadas por faltantes</td><td class="num">-3.500</td></tr>
+  <tr><td>Eliminadas por inválidos</td><td class="num">-3.000</td></tr>
+  <tr><th>Dataset limpio</th><th class="num">90.000</th></tr>
+</table>
+<figure>
+  <img src="img/04_histogramas_limpio.png" alt="Histogramas del dataset limpio">
+  <figcaption>Figura 5. Histogramas del dataset limpio. Ya no aparecen valores imposibles.</figcaption>
+</figure>
+<div class="pendiente">[Captura pendiente: 06 · dataset limpio abierto (90000 instancias)]<br>[Captura pendiente: 07 · Visualize All del dataset limpio]<br>[Captura pendiente: 08 · edad en el dataset limpio (mínimo 18, máximo 80)]</div>
+
+<!-- SECCION 7 -->
+<h2 class="salto">7. Fase 4: modelado</h2>
+<p>Comparamos tres algoritmos de regresión de Weka. Todos usan el mismo conjunto limpio, la misma validación cruzada de <b>10 particiones</b> y la misma semilla:</p>
+<table>
+  <tr><th>Algoritmo</th><th>Familia en Weka</th><th>Por qué lo probamos</th></tr>
+  <tr><td>LinearRegression</td><td>functions</td><td>Línea base sencilla y rápida.</td></tr>
+  <tr><td>REPTree</td><td>trees</td><td>Árbol de decisión, de la familia de los árboles que estudiamos en clase.</td></tr>
+  <tr><td>RandomForest</td><td>trees</td><td>Conjunto de 100 árboles, para comparar precisión.</td></tr>
+</table>
+<h3>7.1 Configuración</h3>
+<pre>LinearRegression -S 0 -R 1.0E-8 -num-decimal-places 4
+REPTree         -M 2 -V 0.001 -N 3 -S 42 -L -1 -I 0.0
+RandomForest    -P 100 -I 100 -num-slots 1 -K 0 -M 1.0 -V 0.001 -S 42</pre>
+<p class="pie">Estas opciones son las del programa Java de entrenamiento (semilla 42). En el Explorer, la semilla por defecto es 1 y aparece como <code>-S 1</code> en la salida.</p>
+<p>Y el bucle de validación cruzada del programa de entrenamiento:</p>
+<pre>Instances base = new Instances(datos);
+base.randomize(new Random(SEMILLA));
+
+for (int k = 0; k &lt; PARTICIONES; k++) {
+    Instances entrenamiento = base.trainCV(PARTICIONES, k);
+    Instances prueba        = base.testCV(PARTICIONES, k);
+    Classifier c = fabrica.get();
+    c.buildClassifier(entrenamiento);
+    for (int i = 0; i &lt; prueba.numInstances(); i++) {
+        Instance in = prueba.instance(i);
+        double pred = c.classifyInstance(in);   // se compara con in.classValue()
+        ...
+    }
+}</pre>
+<p>Al final se entrena cada algoritmo con todo el conjunto limpio y se guarda con su cabecera (<code>SerializationHelper.write</code>). Así el backend lo carga sin volver a entrenar.</p>
+<h3>7.2 Lo que se ve en Weka Explorer</h3>
+<p>Para cumplir el enunciado, repetimos el modelado en la pestaña <b>Classify</b>. Pasos: <b>Choose</b> → <b>trees</b> → <b>REPTree</b>; en <b>Test options</b> aparece <b>Cross-validation, Folds 10</b>; la clase es <code>(Num) semanas_estimadas</code>; luego se pulsa <b>Start</b>.</p>
+<figure>
+  <img src="img/09_reptree_seleccion.png" alt="Weka Classify con REPTree seleccionado">
+  <figcaption>Figura 6. Pestaña Classify con REPTree seleccionado y validación cruzada de 10 particiones.</figcaption>
+</figure>
+<p>La salida incluye la misma estructura que usamos en el informe: <i>Run information</i>, el modelo construido con todos los datos y el bloque <i>Summary</i>.</p>
+<div class="pendiente">[Captura pendiente: 10 · resumen de REPTree (=== Summary ===)]<br>[Captura pendiente: 13 · resumen de LinearRegression]<br>[Captura opcional: 14 · resumen de RandomForest]</div>
+
+<!-- SECCION 8 -->
+<h2>8. Fase 5: evaluación y selección del modelo</h2>
+<p>Usamos las métricas de regresión que pide la clase: <b>MAE</b> (error absoluto medio, en semanas), <b>RMSE</b> (penaliza más los errores grandes) y <b>coeficiente de correlación (CC)</b>. Además calculamos R² y el error por rango de semanas reales.</p>
+<h3>8.1 Tabla comparativa</h3>
+<table>
+  <tr><th>Algoritmo</th><th class="num">MAE (sem)</th><th class="num">RMSE (sem)</th><th class="num">CC</th><th class="num">R²</th><th class="num">Tamaño del modelo</th><th class="num">Tiempo CV</th></tr>
+  <tr><td>LinearRegression</td><td class="num">14,11</td><td class="num">18,53</td><td class="num">0,658</td><td class="num">0,433</td><td class="num">9 KB</td><td class="num">18 s</td></tr>
+  <tr><td><b>REPTree (elegido)</b></td><td class="num">4,72</td><td class="num">6,94</td><td class="num">0,960</td><td class="num">0,921</td><td class="num">1,3 MB</td><td class="num">99 s</td></tr>
+  <tr><td>RandomForest</td><td class="num">3,74</td><td class="num">5,38</td><td class="num">0,978</td><td class="num">0,952</td><td class="num">519 MB</td><td class="num">3.230 s</td></tr>
+</table>
+<p class="pie">Cifras con la semilla 1 del Explorer, que es el valor por defecto. Con la semilla 42 de nuestro programa Java, las cifras coinciden en el tercer decimal (REPTree MAE 4,732; RandomForest 3,739), archivo <code>resultados_modelos.txt</code>.</p>
+<h3>8.2 Error por rango de semanas reales</h3>
+<table>
+  <tr><th>Algoritmo</th><th class="num">0-12 sem</th><th class="num">12-24 sem</th><th class="num">24-48 sem</th><th class="num">48-104 sem</th></tr>
+  <tr><td>LinearRegression</td><td class="num">14,46</td><td class="num">13,48</td><td class="num">9,41</td><td class="num">22,00</td></tr>
+  <tr><td>REPTree</td><td class="num">1,64</td><td class="num">2,87</td><td class="num">4,74</td><td class="num">7,53</td></tr>
+  <tr><td>RandomForest</td><td class="num">1,78</td><td class="num">2,37</td><td class="num">3,35</td><td class="num">6,30</td></tr>
+</table>
+<figure>
+  <img src="img/05_reptree_real_vs_predicho.png" alt="REPTree: real frente a predicho">
+  <figcaption>Figura 7. REPTree: valor real frente a predicho. Equivale a <i>Visualize classifier errors</i>. Cuanto más cerca de la diagonal, mejor.</figcaption>
+</figure>
+<figure>
+  <img src="img/06_reptree_residuos.png" alt="Distribución del error de REPTree">
+  <figcaption>Figura 8. Distribución del error (predicho − real) de REPTree. La mayoría de errores está cerca de cero.</figcaption>
+</figure>
+<figure>
+  <img src="img/05_lr_real_vs_predicho.png" alt="LinearRegression: real frente a predicho">
+  <figcaption>Figura 9. LinearRegression: la nube de puntos se dispersa mucho más. La relación no es lineal.</figcaption>
+</figure>
+<figure>
+  <img src="img/11_reptree_errores.png" alt="Visualize classifier errors en Weka">
+  <figcaption>Figura 10. La misma comparación real frente a predicho, tomada de Weka Explorer.</figcaption>
+</figure>
+<h3>8.3 Selección</h3>
+<div class="nota"><b>Decisión: REPTree.</b> RandomForest tiene el error más bajo, pero pesa 519 MB. Un servicio que lo carga en memoria es inviable en un equipo de 3,8 GB sin Docker. REPTree tiene un error 1 semana mayor (4,72 frente a 3,74), pesa 1,3 MB y entrena en menos de dos minutos. Su estabilidad entre particiones es la misma que la de RandomForest (desviación del MAE de 0,033).</div>
+<div class="alerta"><b>Interpretabilidad parcial.</b> El árbol de REPTree tiene 10.008 nodos. No se puede leer completo. Sus primeros cortes son <code>diferencia_peso_kg</code>, después <code>objetivo</code>, <code>balance_energetico_kcal</code> y <code>adherencia_nutricional_pct</code>.</div>
+<figure>
+  <img src="img/12_reptree_arbol.png" alt="Visualize tree de REPTree en Weka">
+  <figcaption>Figura 11. Visualize tree de REPTree en Weka Explorer. Se muestran los primeros niveles del árbol; el resto es demasiado extenso para leerse en una página.</figcaption>
+</figure>
+<h3>8.4 Advertencias</h3>
+<ul>
+  <li>Las correlaciones son altas porque la clase es una fórmula conocida con ruido. Con personas reales el error será mayor.</li>
+  <li><code>semanas_estimadas</code> tiene un pico en 104 semanas, que es el tope de la fórmula. Eso hace que el modelo aprenda ese tope.</li>
+  <li>Los picos de adherencia en 100 % vienen del recorte de la distribución normal.</li>
+</ul>
+
+<!-- SECCION 9 -->
+<h2 class="salto">9. Fase 6: implementación en SmartBody</h2>
+<p>El modelo REPTree se integró en el microservicio <code>progreso</code>, que ya tenía el historial de medidas. Con Weka en el <code>pom.xml</code> del servicio, el flujo es:</p>
+<ol>
+  <li>Al arrancar, <code>ModeloPrediccion</code> carga el archivo <code>modelos/prediccion-reptree-1.0.model</code> una sola vez.</li>
+  <li><code>ReglasPrediccion</code> valida la entrada y calcula las variables derivadas con las mismas fórmulas del generador.</li>
+  <li><code>PrediccionService</code> arma la instancia con el orden y los tipos del entrenamiento, pide la predicción y guarda el resultado.</li>
+  <li><code>PrediccionController</code> expone los endpoints REST, protegidos con JWT.</li>
+</ol>
+<h3>9.1 Carga del modelo y predicción</h3>
+<pre>@PostConstruct
+void cargar() {
+    try (InputStream entrada = new ClassPathResource(RECURSO).getInputStream()) {
+        Object[] contenido = (Object[]) SerializationHelper.read(entrada);
+        clasificador = (Classifier) contenido[0];
+        cabecera     = (Instances)  contenido[1];
+        cabecera.setClassIndex(cabecera.numAttributes() - 1);
+    } catch (Exception e) {
+        // el servicio sigue; el endpoint responde 503
+    }
+}
+
+public synchronized double predecir(Map&lt;String, Object&gt; valores) {
+    DenseInstance instancia = new DenseInstance(cabecera.numAttributes());
+    instancia.setDataset(cabecera);
+    for (int i = 0; i &lt; cabecera.numAttributes(); i++) {
+        if (i == cabecera.classIndex()) continue;
+        Attribute atributo = cabecera.attribute(i);
+        Object valor = valores.get(atributo.name());
+        if (atributo.isNumeric()) instancia.setValue(atributo, ((Number) valor).doubleValue());
+        else                      instancia.setValue(atributo, valor.toString());
+    }
+    instancia.setMissing(cabecera.classIndex());
+    return clasificador.classifyInstance(instancia);
+}</pre>
+<p>El modelo nunca se reentrena en una petición. La cabecera guardada garantiza que los atributos lleguen con el mismo nombre, tipo, valores nominales y orden que en el entrenamiento.</p>
+<h3>9.2 Endpoints</h3>
+<table>
+  <tr><th>Método y ruta</th><th>Función</th></tr>
+  <tr><td>POST /api/predicciones/tiempo-perdida-peso</td><td>Calcula la estimación, la guarda y responde 201.</td></tr>
+  <tr><td>GET /api/predicciones</td><td>Historial del usuario autenticado.</td></tr>
+  <tr><td>GET /api/predicciones/{id}/seguimiento</td><td>Compara la estimación con las medidas reales registradas después.</td></tr>
+</table>
+<h3>9.3 Ejemplo real de uso</h3>
+<p>Entrada enviada con el JWT del usuario de prueba (hombre de 28 años, 170 cm, de 90 a 80 kg):</p>
+<pre>{ "pesoInicial": 90.0, "pesoObjetivo": 80.0, "alturaCm": 170.0, "edad": 28,
+  "sexo": "MASCULINO", "objetivo": "PERDER_PESO", "nivelActividad": "MODERADO",
+  "nivelExperiencia": "INTERMEDIO", "tipoActividad": "MIXTO",
+  "entrenamientosSemana": 4, "minutosSesion": 45, "restriccionesTotal": 0,
+  "caloriasObjetivo": 2430.0, "adherenciaNutricional": 90.0, "adherenciaEjercicio": 85.0 }</pre>
+<p>Respuesta obtenida (HTTP 201):</p>
+<pre>{ "id": 1, "pesoInicial": 90.0, "pesoObjetivo": 80.0, "objetivo": "PERDER_PESO",
+  "semanasEstimadas": 22.6, "fechaAproximada": "2027-04-17",
+  "modelo": "REPTree", "versionModelo": "1.0", "tipoPrediccion": "orientativa",
+  "aviso": "Estimación orientativa ... No garantiza una pérdida ni una ganancia de peso ..." }</pre>
+<h3>9.4 Errores que el sistema rechaza</h3>
+<table>
+  <tr><th>Caso</th><th>Respuesta</th></tr>
+  <tr><td>Peso objetivo mayor que el inicial en PERDER_PESO</td><td>400: "Para perder peso, el peso objetivo debe ser menor que el peso inicial."</td></tr>
+  <tr><td>Calorías por debajo del mínimo seguro (1.500 kcal hombres, 1.200 mujeres)</td><td>400: "Las calorías objetivo no pueden ser menores a 1500 kcal al día."</td></tr>
+  <tr><td>Campos faltantes o valores imposibles</td><td>400 con la lista de campos y el motivo de cada uno.</td></tr>
+  <tr><td>Sin token JWT</td><td>401</td></tr>
+  <tr><td>Predicción de otro usuario</td><td>404: la predicción no existe para ese usuario.</td></tr>
+</table>
+<div class="nota"><b>Seguimiento real.</b> Después de registrar una medida de 85 kg, el endpoint de seguimiento devuelve <code>pesoActual: 85.0</code>, <code>avancePorcentaje: 50.0</code> y <code>estado: EN_SEGUIMIENTO</code>. El ritmo real en kg por semana solo se calcula después de una semana, para no mostrar valores absurdos al inicio.</div>
+<h3>9.5 Aplicación Android</h3>
+<p>La app incluye la pantalla <b>Tiempo hasta tu objetivo</b>, con el patrón MVP del proyecto. Llena los datos del perfil y del plan automáticamente y pide al usuario el peso objetivo, el nivel y el tipo de actividad, y el porcentaje de seguimiento del plan. Muestra la estimación, la fecha aproximada, el progreso real con la gráfica de peso y el aviso de estimación orientativa. Compila y sus 6 pruebas unitarias pasan.</p>
+<div class="nota"><b>Dónde vive el endpoint.</b> La predicción existe en dos lugares, con el mismo código de cálculo: el monolito (<code>backend</code>), que es el que la app usa por defecto en desarrollo, y el microservicio <code>progreso</code>, que se usa detrás del gateway de Nginx en el despliegue con Docker o Kubernetes. Ambos reciben las mismas rutas.</div>
+<div class="alerta"><b>Pendiente:</b> la pantalla todavía no se ha probado en un dispositivo.</div>
+
+<!-- SECCION 10 -->
+<h2>10. Pruebas realizadas</h2>
+<table>
+  <tr><th>Nivel</th><th>Qué se probó</th><th>Resultado</th></tr>
+  <tr><td>Weka (Java)</td><td>Carga del ARFF, limpieza, entrenamiento, validación cruzada, métricas, guardado y carga del modelo.</td><td>Ejecutado. Cifras en la sección 8.</td></tr>
+  <tr><td>Backend monolito</td><td>Predicción, validaciones, seguimiento y aislamiento entre usuarios, con la app apuntando a este backend.</td><td>103 pruebas unitarias en verde (18 nuevas de predicción). Flujo real con JWT y MySQL verificado.</td></tr>
+  <tr><td>Backend progreso (microservicio)</td><td>Mismas pruebas de predicción sobre el microservicio.</td><td>58 pruebas unitarias en verde (19 nuevas de predicción).</td></tr>
+  <tr><td>Integración</td><td>Login con JWT real, POST, GET de historial, GET de seguimiento y errores 400, 401 y 404 contra MySQL.</td><td>Verificado con respuestas reales.</td></tr>
+  <tr><td>Android</td><td>Lógica de construcción de la petición (6 pruebas) y compilación de la app.</td><td><code>BUILD SUCCESSFUL</code>. Pendiente probar en dispositivo.</td></tr>
+</table>
+
+<!-- SECCION 11 -->
+<h2>11. Limitaciones y trabajo futuro</h2>
+<ul>
+  <li><b>Datos sintéticos.</b> Las métricas validan el flujo, no la precisión real. El siguiente paso es recoger datos longitudinales reales con consentimiento, anonimizados.</li>
+  <li><b>Clase con tope.</b> La fórmula limita las semanas a 104. Con datos reales eso no ocurriría de la misma forma.</li>
+  <li><b>Adherencia declarada.</b> La app todavía no registra el cumplimiento del plan; el usuario lo estima. Registrarlo sería el siguiente paso.</li>
+  <li><b>Reentrenamiento controlado.</b> Actualizar la predicción de un usuario no es lo mismo que reentrenar el modelo. El reentrenamiento debe hacerse con validación y con datos nuevos.</li>
+  <li><b>Pruebas en dispositivo y despliegue.</b> Falta probar la pantalla Android en un teléfono y desplegar el gateway con Docker o Kubernetes.</li>
+  <li><b>Seguridad y privacidad.</b> Los datos de peso son información personal sensible. Hay que cumplir la normativa de protección de datos y pedir consentimiento informado antes de usarlos.</li>
+</ul>
+
+<!-- SECCION 12 -->
+<h2>12. Conclusiones</h2>
+<ol>
+  <li>Weka permitió recorrer las fases de CRISP-DM con herramientas libres: explorar, limpiar, comparar algoritmos y evaluar con validación cruzada.</li>
+  <li>Comparando tres algoritmos, el árbol de decisión REPTree dio el mejor equilibrio entre error, tamaño y estabilidad. RandomForest fue más preciso, pero su tamaño lo hace inviable para el servicio.</li>
+  <li>El modelo se integró en SmartBody sin reentrenarlo en cada petición, con validaciones, errores claros y aislamiento entre usuarios.</li>
+  <li>El resultado es una herramienta orientativa, no una promesa de pérdida de peso. Su valor académico está en el proceso completo y en la forma honesta de presentar sus límites.</li>
+</ol>
+
+<div class="pie" style="margin-top:14pt;">Repositorio: <code>mineria\</code> (scripts, informes y modelos) y <code>services\progreso\</code> (integración). Semilla de reproducibilidad: 42. Versión de Weka: 3.8.6.</div>
+
+</body>
+</html>
+<!-- FIN -->

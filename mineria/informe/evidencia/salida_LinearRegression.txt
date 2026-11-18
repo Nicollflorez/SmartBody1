@@ -1,0 +1,46 @@
+=== Run information ===
+
+Scheme:       weka.classifiers.functions.LinearRegression -S 0 -R 1.0E-8 -num-decimal-places 4
+Relation:     smartbody_semanas_estimadas
+Instances:    90000
+Attributes:   19
+Test mode:    10-fold cross-validation (semilla 1, valores por defecto del Explorer)
+Tiempo total: 18 s
+
+=== Classifier model (full training set) ===
+
+
+Linear Regression Model
+
+semanas_estimadas =
+
+      0.2112 * edad +
+     -3.3492 * sexo=MASCULINO +
+      0.7174 * altura_cm +
+     -0.816  * peso_objetivo_kg +
+      2.0559 * imc_inicial +
+     27.3927 * objetivo=GANAR_MASA +
+      3.5573 * nivel_actividad=MODERADO,LIGERO,SEDENTARIO +
+      3.631  * nivel_actividad=LIGERO,SEDENTARIO +
+      4.2147 * nivel_actividad=SEDENTARIO +
+      0.7945 * nivel_experiencia=INTERMEDIO,AVANZADO +
+      3.0345 * nivel_experiencia=AVANZADO +
+      0.3261 * entrenamientos_semana +
+     -0.0305 * minutos_sesion +
+      2.3061 * tipo_actividad=MIXTO,FUERZA +
+      2.2043 * tipo_actividad=FUERZA +
+      0.0135 * consumo_energetico_kcal +
+     -0.0533 * balance_energetico_kcal +
+      2.2235 * restricciones_total +
+     -0.2924 * adherencia_nutricional_pct +
+     -0.3368 * adherencia_ejercicio_pct +
+    -75.7638
+
+=== Summary ===
+
+Correlation coefficient                  0.6582
+Mean absolute error                     14.1133
+Root mean squared error                 18.5279
+Relative absolute error                 74.3619 %
+Root relative squared error             75.2819 %
+Total Number of Instances            90000     

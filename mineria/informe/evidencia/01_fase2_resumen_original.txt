@@ -1,0 +1,25 @@
+== Dataset original (Preprocess) ==
+Relation: smartbody_semanas_estimadas
+Instances: 100000
+Attributes: 19
+
+Atributo                       Tipo       Faltan  %Faltan Distintos       Minimo       Maximo        Media    Desv.Est.
+edad                           NUMERIC       771    0.77%       64        -5.00       250.00        44.48        19.80
+sexo                           NOMINAL         0    0.00%        2   categorias: MASCULINO=49882, FEMENINO=50118
+altura_cm                      NUMERIC       821    0.82%      537        30.00       320.00       168.55        14.93
+peso_inicial_kg                NUMERIC         0    0.00%     1199        40.00       160.00        80.83        22.35
+peso_objetivo_kg               NUMERIC         0    0.00%      941        40.00       144.50        73.51        15.85
+diferencia_peso_kg             NUMERIC         0    0.00%      430         2.00        45.00        10.59         8.44
+imc_inicial                    NUMERIC         0    0.00%     3501        17.49        68.42        28.53         7.40
+objetivo                       NOMINAL         0    0.00%        2   categorias: PERDER_PESO=75075, GANAR_MASA=24925
+nivel_actividad                NOMINAL       784    0.78%        4   categorias: SEDENTARIO=24763, LIGERO=29829, MODERADO=29683, ACTIVO=14941
+nivel_experiencia              NOMINAL         0    0.00%        3   categorias: PRINCIPIANTE=50044, INTERMEDIO=35057, AVANZADO=14899
+entrenamientos_semana          NUMERIC       782    0.78%        6         2.00         7.00         3.93         1.35
+minutos_sesion                 NUMERIC       756    0.76%       30         0.00       600.00        65.90        45.75
+tipo_actividad                 NOMINAL       778    0.78%        3   categorias: FUERZA=34934, CARDIO=34481, MIXTO=29807
+consumo_energetico_kcal        NUMERIC         0    0.00%     2879       993.00      4295.00      2245.60       505.28
+balance_energetico_kcal        NUMERIC         0    0.00%      570         0.00       600.00       298.07        98.60
+restricciones_total            NUMERIC       792    0.79%        4         0.00         3.00         0.84         1.09
+adherencia_nutricional_pct     NUMERIC       793    0.79%      852       -10.00       150.00        73.14        19.71
+adherencia_ejercicio_pct       NUMERIC       761    0.76%      851        15.00       100.00        70.30        20.36
+semanas_estimadas              NUMERIC         0    0.00%     1016        -3.00       104.00        37.50        24.41

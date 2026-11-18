@@ -1,0 +1,6 @@
+# Artefactos grandes o regenerables: se reproducen con los scripts (ver README.md).
+lib/
+modelos/RandomForest.model
+datos/*.csv
+datos/*.zip
+presentacion/build-pptx/node_modules/
